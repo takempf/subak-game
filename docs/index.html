@@ -1,29 +1,42 @@
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" href="/favicon.png" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap"
+			rel="stylesheet" />
+		
+		<link rel="modulepreload" href="/_app/immutable/entry/start.Cqp28M6F.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/Clp2lnz4.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/cVvJm6r2.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/h-duQwm-.js">
+		<link rel="modulepreload" href="/_app/immutable/entry/app.Bg920oNh.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/D14GdDqd.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/FBHv2_uG.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/Blu9HdjI.js">
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div>
+			<script>
+				{
+					__sveltekit_1hsz9q0 = {
+						base: ""
+					};
 
-    <title>Subak Game (수박 개임)</title>
+					const element = document.currentScript.parentElement;
 
-    <link rel="icon" type="image/svg+xml" href="./watermelon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link
-      href="https://fonts.googleapis.com/css2?family=Titan+One&display=swap"
-      rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-Dw4Yr68d.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DlnXoOYS.css">
-  </head>
-
-  <body>
-    <header id="header">
-      <strong>Subak Game (수박 개임)</strong> by
-      <a href="https://kempf.dev">Timothy Kempf</a>
-    </header>
-    <main id="root"></main>
-
-  </body>
+					Promise.all([
+						import("/_app/immutable/entry/start.Cqp28M6F.js"),
+						import("/_app/immutable/entry/app.Bg920oNh.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+	</body>
 </html>
