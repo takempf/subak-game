@@ -1,49 +1,72 @@
 {
-  "name": "subak-game",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/subak-game.umd.js",
-  "module": "./dist/subak-game.js",
-  "exports": {
-    ".": {
-      "import": "./dist/subak-game.js",
-      "require": "./dist/subak-game.umd.js"
-    }
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "classnames": "^2.5.1",
-    "dexie": "^4.0.7",
-    "dexie-react-hooks": "^1.1.7",
-    "framer-motion": "^11.2.10",
-    "lodash-es": "^4.17.21",
-    "phaser": "^3.80.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "rooks": "^7.14.1",
-    "zustand": "^4.5.2"
-  },
-  "devDependencies": {
-    "@types/lodash-es": "^4.17.12",
-    "@types/node": "^20.14.2",
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "typescript": "^5.2.2",
-    "vite": "^5.2.0"
-  }
+	"name": "subak-game-2",
+	"description": "A game where you drop and merge fruit to make larger fruit.",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*"
+	],
+	"sideEffects": [
+		"**/*.css"
+	],
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build && npm run prepack",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"prepack": "svelte-kit sync && svelte-package && publint",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint ."
+	},
+	"keywords": [],
+	"author": "",
+	"license": "",
+	"dependencies": {
+		"@dimforge/rapier2d-compat": "^0.16.1",
+		"dexie": "^4.0.11",
+		"esm-env": "^1.2.2",
+		"howler": "^2.2.4",
+		"svelte": "^5.0.0",
+		"svelte-check": "^4.1.5",
+		"vite": "^6.2.1"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.2.5",
+		"@eslint/js": "^9.18.0",
+		"@sveltejs/adapter-static": "^3.0.8",
+		"@sveltejs/kit": "^2.16.0",
+		"@sveltejs/package": "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@tsconfig/svelte": "^5.0.2",
+		"@types/howler": "^2.2.12",
+		"eslint": "^9.18.0",
+		"eslint-config-prettier": "^10.0.1",
+		"eslint-plugin-svelte": "^3.0.0",
+		"globals": "^16.0.0",
+		"prettier": "^3.4.2",
+		"prettier-plugin-svelte": "^3.3.3",
+		"publint": "^0.3.2",
+		"svelte": "^5.0.0",
+		"svelte-check": "^4.0.0",
+		"svelte-package": "^0.1.0",
+		"typescript": "^5.0.0",
+		"typescript-eslint": "^8.20.0",
+		"vite": "^6.2.6",
+		"vite-plugin-static-copy": "^2.3.1"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	}
 }
