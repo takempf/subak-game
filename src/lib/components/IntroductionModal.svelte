@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import Leaderboard from './Leaderboard.svelte';
 	import Fruit from './Fruit.svelte';
+	import TKIcon from '../icons/tk.svelte';
 
 	const { open, gameOver, onClose } = $props();
 
@@ -21,7 +22,15 @@
 	const startButtonText = $derived(gameOver ? 'Start Game' : 'Resume Game');
 </script>
 
-<Modal {open} {onClose}>
+{#snippet append()}
+	<div class="footer">
+		<a class="credit" href="https://kempf.dev/#subak" target="_blank"
+			>Crafted by <span class="tk-logo"><TKIcon /></span></a>
+		<span class="version">v2.0.0 <em>alpha</em></span>
+	</div>
+{/snippet}
+
+<Modal {open} {onClose} {append}>
 	<div class="content">
 		<h2 class="heading">Subak Game <Fruit name="watermelon" radius="1em" /></h2>
 		<div>
@@ -29,7 +38,7 @@
 			<Fruit name="orange" radius="1em" display="inline" />.<br />Try to get to a <Fruit
 				name="watermelon"
 				radius="1em"
-				display="inline" />.
+				display="inline" />!
 		</div>
 		<Leaderboard scores={highScores} />
 		<button onclick={handleStartClick}>{startButtonText}</button>
@@ -50,6 +59,24 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1em;
+		gap: 1.5em;
+	}
+
+	.footer {
+		display: flex;
+		justify-content: space-between;
+		color: var(--color-very-light-text);
+
+		a {
+			color: inherit;
+
+			&:hover {
+				color: var(--color-light-text);
+			}
+		}
+	}
+
+	.tk-logo {
+		font-size: 0.8em;
 	}
 </style>

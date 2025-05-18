@@ -22,7 +22,10 @@
 <Modal {open} {onClose}>
 	<div class="content">
 		<h2 class="heading">Thanks for playing!</h2>
-		<div>Your score was <strong><var>{score}</var></strong></div>
+		<div class="score">
+			<div class="score-text">Your score was</div>
+			<var class="score-value">{score}</var>
+		</div>
 
 		<Leaderboard scores={highScores} />
 
@@ -44,6 +47,14 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1em;
+		gap: 1.5em;
+	}
+
+	.score-value {
+		display: block;
+		text-align: center;
+		font-size: 2em;
+		font-weight: 500;
+		color: rgb(49, 181, 82);
 	}
 </style>

@@ -60,7 +60,7 @@
 
 	.scoresScroll {
 		mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 1em);
-		max-height: 8.5em;
+		max-height: 7.5em;
 		overflow: auto;
 	}
 
@@ -71,6 +71,9 @@
 		font-style: normal;
 		font-variant-numeric: tabular-nums;
 		font-feature-settings: 'ss01';
+	}
+
+	.score {
 		text-align: right;
 	}
 

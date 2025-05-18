@@ -297,6 +297,10 @@
 			font-weight: 550;
 		}
 
+		:global(h1, h2, h3, h4, h5, h6) {
+			margin: 0;
+		}
+
 		:global(button) {
 			font-size: 1em;
 			display: inline-flex;
