@@ -17,7 +17,7 @@ const PITCH_VARIATION_MAX = 1.1;
 // Helper function (as defined above)
 function mapRange(value, inMin, inMax, outMin, outMax) {
     const clampedValue = Math.max(inMin, Math.min(value, inMax));
-    return (((clampedValue - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin);
+    return ((clampedValue - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
 export class GameState {
     audioManager = null;
@@ -141,8 +141,7 @@ export class GameState {
             const collisionItemB = this.colliderMap.get(handle2);
             if (collisionItemA?.body && collisionItemB?.body && this.audioManager) {
                 // Apply random pitch variation
-                const rate = PITCH_VARIATION_MIN +
-                    Math.random() * (PITCH_VARIATION_MAX - PITCH_VARIATION_MIN);
+                const rate = PITCH_VARIATION_MIN + Math.random() * (PITCH_VARIATION_MAX - PITCH_VARIATION_MIN);
                 // if it's two fruits they will always fire pop sound effect
                 if (collisionItemA instanceof Fruit &&
                     collisionItemB instanceof Fruit &&
@@ -171,8 +170,7 @@ export class GameState {
                 }
             }
             // Avoid processing if either collider is already part of a merge this step
-            if (mergedHandlesThisStep.has(handle1) ||
-                mergedHandlesThisStep.has(handle2)) {
+            if (mergedHandlesThisStep.has(handle1) || mergedHandlesThisStep.has(handle2)) {
                 return;
             }
             let fruitA;
@@ -185,16 +183,12 @@ export class GameState {
                 return;
             }
             // Ensure both colliders correspond to known fruit data and are valid
-            if (!fruitA ||
-                !fruitB ||
-                !fruitA.body.isValid() ||
-                !fruitB.body.isValid()) {
+            if (!fruitA || !fruitB || !fruitA.body.isValid() || !fruitB.body.isValid()) {
                 // One or both colliders might not be fruits (e.g., walls) or might have been removed
                 return;
             }
             // Check if fruits are the same type and not the largest
-            if (fruitA.fruitIndex === fruitB.fruitIndex &&
-                fruitA.fruitIndex < FRUITS.length - 1) {
+            if (fruitA.fruitIndex === fruitB.fruitIndex && fruitA.fruitIndex < FRUITS.length - 1) {
                 // Queue this pair for merging
                 console.log(`Collision Event: Queueing merge for type ${fruitA.fruitIndex} (handles ${handle1}, ${handle2})`);
                 // Ensure consistent order (optional, but good practice)

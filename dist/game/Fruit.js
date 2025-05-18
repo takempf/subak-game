@@ -60,8 +60,7 @@ export class Fruit {
         const topOfFruitY = this.body.translation().y - this.radius;
         if (this.body.isValid() && topOfFruitY < GAME_OVER_HEIGHT) {
             // we've been out of bounds for a while.
-            if (this.startOutOfBounds &&
-                performance.now() - this.startOutOfBounds > 1000) {
+            if (this.startOutOfBounds && performance.now() - this.startOutOfBounds > 1000) {
                 return true;
             }
             // mark that we have begun being out of bounds

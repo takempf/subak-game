@@ -17,28 +17,28 @@
  * @returns {Function} Returns the new throttled function.
  */
 export function throttle<T extends (...args: unknown[]) => unknown>(
-  func: T,
-  waitMs: number
+	func: T,
+	waitMs: number
 ): (...args: Parameters<T>) => ReturnType<T> | undefined {
-  let lastExecutionTime = 0;
-  let lastResult: ReturnType<T> | undefined;
+	let lastExecutionTime = 0;
+	let lastResult: ReturnType<T> | undefined;
 
-  // The returned throttled function
-  return function throttled(
-    this: ThisParameterType<T>, // Capture 'this' context
-    ...args: Parameters<T> // Capture arguments
-  ): ReturnType<T> | undefined {
-    const currentTime = performance.now();
+	// The returned throttled function
+	return function throttled(
+		this: ThisParameterType<T>, // Capture 'this' context
+		...args: Parameters<T> // Capture arguments
+	): ReturnType<T> | undefined {
+		const currentTime = performance.now();
 
-    // Check if enough time has passed since the last execution
-    if (currentTime - lastExecutionTime >= waitMs) {
-      lastExecutionTime = currentTime; // Record the time of this execution
-      // Execute the original function with the correct 'this' context and arguments
-      lastResult = func.apply(this, args) as ReturnType<T>;
-      return lastResult;
-    }
+		// Check if enough time has passed since the last execution
+		if (currentTime - lastExecutionTime >= waitMs) {
+			lastExecutionTime = currentTime; // Record the time of this execution
+			// Execute the original function with the correct 'this' context and arguments
+			lastResult = func.apply(this, args) as ReturnType<T>;
+			return lastResult;
+		}
 
-    // If throttled, return the last known result (or undefined if never run)
-    return lastResult;
-  };
+		// If throttled, return the last known result (or undefined if never run)
+		return lastResult;
+	};
 }
