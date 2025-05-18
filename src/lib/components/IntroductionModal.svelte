@@ -7,7 +7,7 @@
 	import Fruit from './Fruit.svelte';
 	import TKIcon from '../icons/tk.svelte';
 
-	const { open, gameOver, onClose } = $props();
+	const { open, gameStatus, onClose } = $props();
 
 	let highScores = $state([]);
 
@@ -19,7 +19,19 @@
 		onClose();
 	}
 
-	const startButtonText = $derived(gameOver ? 'Start Game' : 'Resume Game');
+	const startButtonText = $derived.by(() => {
+		switch (gameStatus) {
+			case 'gameover':
+				return 'Start New Game';
+
+			case 'paused':
+				return 'Resume Game';
+
+			case 'uninitialized':
+			default:
+				return 'Start Game';
+		}
+	});
 </script>
 
 {#snippet append()}

@@ -59,11 +59,12 @@ interface GameStateProps {
 	imagesPath?: string;
 	soundsPath?: string;
 }
+export type GameStatus = 'uninitialized' | 'playing' | 'paused' | 'gameover';
 
 export class GameState {
 	audioManager: AudioManager | null = null;
 	score: number = $state(0);
-	gameOver: boolean = $state(false);
+	status: GameStatus = $state('uninitialized');
 	currentFruitIndex: number = $state(0);
 	nextFruitIndex: number = $state(0);
 	fruits: Fruit[] = [];
@@ -102,7 +103,7 @@ export class GameState {
 	}
 
 	update() {
-		if (this.gameOver) {
+		if (this.status === 'gameover') {
 			// Stop loop if component destroyed or game over
 			if (this.animationFrameId) {
 				cancelAnimationFrame(this.animationFrameId);
@@ -133,7 +134,7 @@ export class GameState {
 			console.log('Physics world and event queue created and set.');
 		} catch (error) {
 			console.error('Failed to initialize Rapier or create physics world:', error);
-			this.setGameOver(true);
+			this.setStatus('gameover');
 		}
 	}
 
@@ -406,12 +407,12 @@ export class GameState {
 	}
 
 	checkGameOver(): void {
-		if (this.gameOver) return;
+		if (this.status === 'gameover') return;
 
 		for (const fruit of this.fruits) {
 			if (fruit.isOutOfBounds()) {
 				console.log('Game Over condition met!');
-				this.setGameOver(true);
+				this.setStatus('gameover');
 				break;
 			}
 		}
@@ -433,7 +434,7 @@ export class GameState {
 		this.setFruitsState([]);
 		this.setMergeEffects([]);
 		this.setScore(0);
-		this.setGameOver(false);
+		this.setStatus('playing');
 		this.setCurrentFruitIndex(this.getRandomFruitIndex());
 		this.setNextFruitIndex(this.getRandomFruitIndex());
 	}
@@ -452,8 +453,8 @@ export class GameState {
 		this.score = newScore;
 	}
 
-	setGameOver(newGameOver: boolean) {
-		this.gameOver = newGameOver;
+	setStatus(newStatus: GameStatus) {
+		this.status = newStatus;
 	}
 
 	setCurrentFruitIndex(newCurrentFruitIndex: number) {

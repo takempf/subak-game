@@ -79,7 +79,7 @@
 
 	// Save score when game is over
 	$effect(() => {
-		if (gameState?.gameOver) {
+		if (gameState?.status === 'gameover') {
 			// Ensure score is a number before saving
 			if (typeof gameState.score === 'number') {
 				saveScore(gameState.score);
@@ -90,7 +90,7 @@
 	});
 
 	function dropCurrentFruit() {
-		if (!gameState || gameState.gameOver || isDropping) return;
+		if (!gameState || gameState.status !== 'playing' || isDropping) return;
 
 		isDropping = true;
 
@@ -172,7 +172,7 @@
 				{/each}
 
 				<!-- Preview fruit - Appears when not dropping -->
-				{#if !gameState.gameOver && !isDropping && currentFruit}
+				{#if gameState.status !== 'gameover' && !isDropping && currentFruit}
 					<div
 						class="preview-fruit"
 						aria-hidden="true"
@@ -203,7 +203,7 @@
 
 		{#if gameState}
 			<GameOverModal
-				open={gameState.gameOver}
+				open={gameState.status === 'gameover'}
 				score={gameState.score}
 				onClose={handleGameOverClose} />
 		{/if}
