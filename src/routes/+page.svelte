@@ -16,12 +16,7 @@
 	}
 
 	:global(body) {
-		background: linear-gradient(
-			180deg,
-			rgb(104, 79, 194) 0%,
-			rgb(253, 29, 29) 85%,
-			rgb(252, 176, 69) 100%
-		);
+		background: linear-gradient(180deg, #6239ab, #e65353 85%, #fcb045);
 	}
 
 	main {
@@ -38,12 +33,12 @@
 		display: Flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 1em;
+		border-bottom-right-radius: 1em;
 		padding: 1em;
 		justify-self: start;
 		position: absolute;
-		top: 1em;
-		left: 1em;
+		top: 0;
+		left: 0;
 		font-size: 10px;
 	}
 </style>

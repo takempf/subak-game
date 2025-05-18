@@ -206,13 +206,18 @@
 
 <style>
 	.game-container {
-		container-type: inline-size;
-		width: clamp(100px, 100%, 700px);
-
 		--min-container-width: 100;
 		--max-container-width: 600;
 		--min-font-size-px: 2;
 		--max-font-size-px: 16;
+
+		container-type: inline-size;
+		width: clamp(100px, 100%, 700px);
+		max-width: calc(100svh * 2 / 3);
+
+		@media (max-width: 480px) {
+			max-width: calc(100svh * 1 / 2);
+		}
 	}
 
 	.responsive-font-size {
@@ -254,9 +259,8 @@
 		--border-radius: 1em;
 
 		display: grid;
-		grid-template-columns: minmax(100px, 20cqi) minmax(200px, 600px);
+		grid-template-columns: 1fr 4fr;
 		grid-template-areas: 'header header' 'sidebar gameplay';
-		width: minmax(fit-content, 100%);
 
 		position: relative;
 		overflow: hidden;
@@ -274,9 +278,13 @@
 		font-style: normal;
 		font-weight: 400;
 
-		@media (max-width: 420px) {
+		@media (max-width: 480px) {
 			grid-template-columns: 1fr;
 			grid-template-areas: 'sidebar' 'gameplay' 'header';
+		}
+
+		:global(*) {
+			box-sizing: border-box;
 		}
 
 		:global(b, strong, h1, h2, h3, h4, h5, h6) {

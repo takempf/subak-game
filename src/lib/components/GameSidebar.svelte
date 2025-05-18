@@ -91,7 +91,7 @@
 		padding: 0.5em 0.75em;
 	}
 
-	@media (max-width: 420px) {
+	@media (max-width: 480px) {
 		.game-sidebar {
 			flex-direction: row;
 			flex-wrap: wrap;
