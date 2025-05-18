@@ -53,7 +53,7 @@
 			class="custom-backdrop"
 			onclick={requestClose}
 			aria-hidden="true"
-			in:fade={{ easing: quadOut, duration: 250 }}
+			in:fade={{ easing: quadOut, duration: 150 }}
 			out:fade={{ easing: quadOut, duration: 250, delay: 100 }}>
 		</div>
 
@@ -64,7 +64,7 @@
     -->
 		<div
 			class="modal-body"
-			in:scale={{ easing: quadOut, duration: 400, delay: 100, start: 0.9 }}
+			in:scale={{ easing: quadOut, duration: 200, delay: 50, start: 0.9 }}
 			out:scale={{ easing: quadOut, duration: 400, start: 0.9 }}>
 			<div class="modal-content">
 				<!-- Close Button -->
