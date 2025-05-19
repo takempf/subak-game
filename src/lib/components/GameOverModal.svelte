@@ -24,7 +24,7 @@
 		<h2 class="heading">Thanks for playing!</h2>
 		<div class="score">
 			<div class="score-text">Your score was</div>
-			<var class="score-value">{score}</var>
+			<var class="score-value">{Intl.NumberFormat().format(score)}</var>
 		</div>
 
 		<Leaderboard scores={highScores} />
