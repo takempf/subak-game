@@ -10,9 +10,10 @@ export default tsEslint.config(
 	js.configs.recommended,
 	...tsEslint.configs.recommended,
 	...svelteEslint.configs.prettier,
-	...prettierEslint.configs.recommended,
+	// Apply Prettier's formatting rules
+	prettierEslint,
 	{
-		ignores: ['dist/**', 'docs/**']
+		ignores: ['dist/**', 'docs/**', '.svelte-kit/**']
 	},
 	{
 		languageOptions: {

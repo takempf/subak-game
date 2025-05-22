@@ -109,7 +109,13 @@
 	// --- Event Handlers ---
 
 	// Handle clicking/tapping to drop a fruit
-	function handleClick(): void {
+	function handleClick(event: PointerEvent): void {
+		// Only react to primary pointer button (typically left click).
+		// If the button property is undefined (e.g. in some test
+		// environments), treat it as a primary button click. This keeps
+		// browser navigation buttons functional.
+		if (event.button !== undefined && event.button !== 0) return;
+
 		dropCurrentFruit();
 	}
 
