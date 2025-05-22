@@ -1,22 +1,5 @@
 import { vi } from 'vitest';
 
-vi.hoisted(() => {
-  if (!('matchMedia' in globalThis)) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    globalThis.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }));
-  }
-});
-
 import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -105,7 +88,7 @@ describe('Game component', () => {
   });
 
   it('handles modal visibility and game restart', async () => {
-    const { getAllByRole, getByRole, getAllByText } = render(Game);
+    const { getAllByRole } = render(Game);
 
     // intro visible
     let resumeButtons = getAllByRole('button', { name: /resume game/i });
