@@ -3,21 +3,22 @@ import { GameState } from '../game.svelte.js';
 import { FRUITS } from '../../constants';
 
 // Stub physics related methods before constructing GameState
-vi.spyOn(GameState.prototype as any, 'initPhysics').mockImplementation(async function(this: any){
+const proto: any = GameState.prototype;
+vi.spyOn(proto, 'initPhysics').mockImplementation(async function(this: any){
   this.physicsWorld = {
     integrationParameters: { dt: 1/60 },
     removeRigidBody: vi.fn()
   };
   this.eventQueue = { drainCollisionEvents: vi.fn() };
 });
-vi.spyOn(GameState.prototype as any, 'update').mockImplementation(() => {});
-vi.spyOn(GameState.prototype as any, 'addFruit').mockImplementation(function(this: any, fruitIndex: number, x: number, y: number){
+vi.spyOn(proto, 'update').mockImplementation(() => {});
+vi.spyOn(proto, 'addFruit').mockImplementation(function(this: any, fruitIndex: number, x: number, y: number){
   const fruit = {
     fruitIndex,
     radius: FRUITS[fruitIndex].radius,
     points: FRUITS[fruitIndex].points,
     body: {
-      handle: ++(this._handle || (this._handle = 0)),
+      handle: (this._handle = (this._handle ?? 0) + 1),
       isValid: () => true,
       translation: () => ({ x, y }),
       rotation: () => 0,
