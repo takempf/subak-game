@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-
 	import Modal from './Modal.svelte';
 
 	import { getHighScores } from '../stores/db';

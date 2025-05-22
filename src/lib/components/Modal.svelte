@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { quadOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
-	import { onDestroy } from 'svelte';
 
 	// --- Props ---
 	// `open`: Controls the visibility of the modal (bindable)
