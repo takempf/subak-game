@@ -19,6 +19,7 @@
 	import GameSidebar from './GameSidebar.svelte';
 	import GameHeader from './GameHeader.svelte';
 	import GameOverModal from './GameOverModal.svelte';
+	import DebugMenu from '../components/DebugMenu.svelte';
 
 	// Import Constants and Types
 	import {
@@ -35,6 +36,7 @@
 	// Game state reference
 	let gameState = $state<GameState | null>(null);
 	let highScores = $state([]);
+	let showDebugMenu = $state(false);
 
 	// Find game area width and cursor position
 	let gameRef = $state<HTMLElement | null>(null);
@@ -51,6 +53,9 @@
 		});
 
 		setContext('gameState', gameState);
+
+		const urlParams = new URLSearchParams(window.location.search);
+		showDebugMenu = urlParams.get("debug") === "true";
 
 		return function onUnmount() {
 			gameState.destroy();
@@ -210,6 +215,9 @@
 				onClose={handleGameOverClose} />
 		{/if}
 	</div>
+	{#if showDebugMenu && gameState}
+		<DebugMenu {gameState} />
+	{/if}
 </div>
 
 <style>
