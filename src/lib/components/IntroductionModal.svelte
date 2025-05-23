@@ -1,11 +1,12 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
+	import { onMount } from 'svelte';
 
 	import { getHighScores } from '../stores/db';
-	import { onMount } from 'svelte';
+
+	import Modal from './Modal.svelte';
 	import Leaderboard from './Leaderboard.svelte';
 	import Fruit from './Fruit.svelte';
-	import TKIcon from '../icons/tk.svelte';
+	import ModalCreditsFooter from './ModalCreditsFooter.svelte';
 
 	const { open, gameStatus, onClose } = $props();
 
@@ -34,13 +35,7 @@
 	});
 </script>
 
-{#snippet append()}
-	<div class="footer">
-		<a class="credit" href="https://kempf.dev/#subak" target="_blank"
-			>Crafted by <span class="tk-logo"><TKIcon /></span></a>
-		<span class="version">v2.0.0 <em>alpha</em></span>
-	</div>
-{/snippet}
+{#snippet append()}<ModalCreditsFooter />{/snippet}
 
 <Modal {open} {onClose} {append}>
 	<div class="content">
@@ -72,23 +67,5 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1.5em;
-	}
-
-	.footer {
-		display: flex;
-		justify-content: space-between;
-		color: var(--color-very-light-text);
-
-		a {
-			color: inherit;
-
-			&:hover {
-				color: var(--color-light-text);
-			}
-		}
-	}
-
-	.tk-logo {
-		font-size: 0.8em;
 	}
 </style>
