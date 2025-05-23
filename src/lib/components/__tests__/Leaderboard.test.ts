@@ -37,6 +37,7 @@ describe('Leaderboard component', () => {
 		expect(row?.classList.contains('highlight')).toBe(true);
 		expect(scrollSpy).toHaveBeenCalled();
 		// clean up
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		delete (Element.prototype as any).scrollIntoView;
 	});
 });
