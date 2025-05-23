@@ -258,9 +258,9 @@
 	.game {
 		--color-border: hsla(0, 0%, 0%, 0.1);
 		--color-border-light: hsla(0, 0%, 0%, 0.075);
-		--color-background: hsl(0, 0%, 93%);
+		--color-background: hsl(0, 0%, 95%);
 		--color-background-light: hsl(0, 0%, 99%);
-		--color-background-dark: hsl(0, 0%, 89%);
+		--color-background-dark: hsl(0, 0%, 90%);
 		--color-text: hsl(0, 0%, 20%);
 		--color-light-text: hsl(0, 0%, 35%);
 		--color-very-light-text: hsl(0, 0%, 50%);

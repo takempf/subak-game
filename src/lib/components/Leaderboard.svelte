@@ -12,14 +12,28 @@
 	}
 	let { scores, highlightScore }: LeaderboardProps = $props();
 
-	let tableContainer: HTMLDivElement | null = null;
+	let tableContainer: HTMLDivElement | null = $state(null);
 
 	$effect(() => {
-		if (highlightScore == null || !tableContainer) return;
+		// By reading 'scores' here, we make it a reactive dependency of the effect.
+		// This ensures the effect re-runs if the scores data itself changes,
+		// which is important because the row we're looking for depends on this data.
+		const currentScores = scores;
+
+		if (
+			highlightScore == null || // No score to highlight
+			!tableContainer || // The scroll container isn't in the DOM yet
+			!currentScores || // Scores data isn't available
+			currentScores.length === 0 // Scores data is empty
+		) {
+			// console.log('Effect: Conditions not met for scrolling. Exiting.');
+			return;
+		}
+
 		const row = tableContainer.querySelector(
 			`tr[data-score="${highlightScore}"]`
 		) as HTMLElement | null;
-		row?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	});
 
 	// Date formatter remains the same
@@ -114,7 +128,11 @@
 		border-bottom: none;
 	}
 
+	tr:nth-child(even) {
+		background: var(--color-background);
+	}
+
 	tr.highlight {
-		background-color: rgba(255, 215, 0, 0.2);
+		background-color: rgba(68, 253, 115, 0.11);
 	}
 </style>
