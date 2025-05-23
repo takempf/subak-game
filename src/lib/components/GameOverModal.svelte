@@ -1,18 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
-	import { getHighScores } from '../stores/db';
-
 	import Modal from './Modal.svelte';
 	import Leaderboard from './Leaderboard.svelte';
 
-	const { open, score, onClose } = $props();
-
-	let highScores = $state([]);
-
-	onMount(async () => {
-		highScores = await getHighScores();
-	});
+	const { open, score, scores = [], onClose } = $props();
 
 	function handleStartClick() {
 		onClose();
@@ -27,7 +17,7 @@
 			<var class="score-value">{Intl.NumberFormat().format(score)}</var>
 		</div>
 
-		<Leaderboard scores={highScores} />
+		<Leaderboard {scores} highlightScore={score} />
 
 		<button onclick={handleStartClick}>Start New Game</button>
 	</div>

@@ -8,8 +8,19 @@
 
 	interface LeaderboardProps {
 		scores: Score[];
+		highlightScore?: number;
 	}
-	let { scores }: LeaderboardProps = $props();
+	let { scores, highlightScore }: LeaderboardProps = $props();
+
+	let tableContainer: HTMLDivElement | null = null;
+
+	$effect(() => {
+		if (highlightScore == null || !tableContainer) return;
+		const row = tableContainer.querySelector(
+			`tr[data-score="${highlightScore}"]`
+		) as HTMLElement | null;
+		row?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+	});
 
 	// Date formatter remains the same
 	const formatter = new Intl.DateTimeFormat('en-US', {
@@ -25,12 +36,12 @@
 			Top Scores from <strong>This Browser</strong>
 		</div>
 		<div class="scores">
-			<div class="scoresScroll">
+			<div class="scoresScroll" bind:this={tableContainer}>
 				<table>
 					<tbody>
 						{#each scores as score, index (score.id)}
 							{@const rank = index + 1}
-							<tr>
+							<tr data-score={score.score} class:highlight={score.score === highlightScore}>
 								<td class="rank">{rank}</td>
 								<td class="score">
 									<strong>{Intl.NumberFormat().format(score.score)}</strong>
@@ -61,7 +72,8 @@
 	.scoresScroll {
 		mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 1em);
 		max-height: 7.5em;
-		overflow: auto;
+		overflow-y: auto;
+		overflow-x: hidden;
 	}
 
 	/* Combined selectors - using createdAt based on JSX */
@@ -81,6 +93,7 @@
 
 	table {
 		border-collapse: collapse;
+		width: 100%;
 	}
 
 	td {
@@ -99,5 +112,9 @@
 
 	tr:last-child td {
 		border-bottom: none;
+	}
+
+	tr.highlight {
+		background-color: rgba(255, 215, 0, 0.2);
 	}
 </style>
