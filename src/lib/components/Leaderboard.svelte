@@ -6,10 +6,19 @@
 		date: Date;
 	}
 
-	interface LeaderboardProps {
-		scores: Score[];
-	}
-	let { scores }: LeaderboardProps = $props();
+interface LeaderboardProps {
+        scores: Score[];
+        highlightScore?: number;
+}
+let { scores, highlightScore }: LeaderboardProps = $props();
+
+let tableContainer: HTMLDivElement | null = null;
+
+$effect(() => {
+        if (highlightScore == null || !tableContainer) return;
+        const row = tableContainer.querySelector(`tr[data-score="${highlightScore}"]`) as HTMLElement | null;
+        row?.scrollIntoView({ block: 'nearest' });
+});
 
 	// Date formatter remains the same
 	const formatter = new Intl.DateTimeFormat('en-US', {
@@ -24,17 +33,17 @@
 		<div>
 			Top Scores from <strong>This Browser</strong>
 		</div>
-		<div class="scores">
-			<div class="scoresScroll">
-				<table>
-					<tbody>
-						{#each scores as score, index (score.id)}
-							{@const rank = index + 1}
-							<tr>
-								<td class="rank">{rank}</td>
-								<td class="score">
-									<strong>{Intl.NumberFormat().format(score.score)}</strong>
-								</td>
+                <div class="scores">
+                        <div class="scoresScroll" bind:this={tableContainer}>
+                                <table>
+                                        <tbody>
+                                                {#each scores as score, index (score.id)}
+                                                        {@const rank = index + 1}
+                                                        <tr data-score={score.score} class:highlight={score.score === highlightScore}>
+                                                                <td class="rank">{rank}</td>
+                                                                <td class="score">
+                                                                        <strong>{Intl.NumberFormat().format(score.score)}</strong>
+                                                                </td>
 								<td class="createdAt">{formatter.format(score.date)}</td>
 							</tr>
 						{/each}
@@ -97,7 +106,11 @@
 		padding-right: 1em;
 	}
 
-	tr:last-child td {
-		border-bottom: none;
-	}
+        tr:last-child td {
+                border-bottom: none;
+        }
+
+        tr.highlight {
+                background-color: rgba(255, 215, 0, 0.2);
+        }
 </style>

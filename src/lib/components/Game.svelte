@@ -5,7 +5,7 @@
 
 	// Import Stores and Types
 	import { GameState } from '../stores/game.svelte.js';
-	import { saveScore } from '../stores/db';
+import { saveScore, getHighScores } from '../stores/db';
 
 	// Import Utilities
 	import { clamp } from '../utils';
@@ -33,7 +33,8 @@
 	const { imagesPath = DEFAULT_IMAGES_PATH, soundsPath = DEFAULT_SOUNDS_PATH } = $props();
 
 	// Game state reference
-	let gameState = $state<GameState | null>(null);
+let gameState = $state<GameState | null>(null);
+let highScores = $state([]);
 
 	// Find game area width and cursor position
 	let gameRef = $state<HTMLElement | null>(null);
@@ -77,17 +78,17 @@
 
 	let isDropping = $state(false);
 
-	// Save score when game is over
-	$effect(() => {
-		if (gameState?.status === 'gameover') {
-			// Ensure score is a number before saving
-			if (typeof gameState.score === 'number') {
-				saveScore(gameState.score);
-			} else {
-				console.error('Attempted to save invalid score:', gameState.score);
-			}
-		}
-	});
+        // Save score and load leaderboard when game is over
+        $effect(async () => {
+                if (gameState?.status === 'gameover') {
+                        if (typeof gameState.score === 'number') {
+                                await saveScore(gameState.score);
+                                highScores = await getHighScores();
+                        } else {
+                                console.error('Attempted to save invalid score:', gameState.score);
+                        }
+                }
+        });
 
 	function dropCurrentFruit() {
 		if (!gameState || gameState.status !== 'playing' || isDropping) return;
@@ -202,11 +203,12 @@
 		</div>
 
 		{#if gameState}
-			<GameOverModal
-				open={gameState.status === 'gameover'}
-				score={gameState.score}
-				onClose={handleGameOverClose} />
-		{/if}
+                        <GameOverModal
+                                open={gameState.status === 'gameover'}
+                                score={gameState.score}
+                                scores={highScores}
+                                onClose={handleGameOverClose} />
+                {/if}
 	</div>
 </div>
 
