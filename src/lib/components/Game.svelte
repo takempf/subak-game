@@ -5,7 +5,7 @@
 
 	// Import Stores and Types
 	import { GameState } from '../stores/game.svelte.js';
-	import { saveScore } from '../stores/db';
+	import { saveScore, getHighScores } from '../stores/db';
 
 	// Import Utilities
 	import { clamp } from '../utils';
@@ -34,6 +34,7 @@
 
 	// Game state reference
 	let gameState = $state<GameState | null>(null);
+	let highScores = $state([]);
 
 	// Find game area width and cursor position
 	let gameRef = $state<HTMLElement | null>(null);
@@ -77,12 +78,12 @@
 
 	let isDropping = $state(false);
 
-	// Save score when game is over
-	$effect(() => {
-		if (gameState?.gameOver) {
-			// Ensure score is a number before saving
+	// Save score and load leaderboard when game is over
+	$effect(async () => {
+		if (gameState?.status === 'gameover') {
 			if (typeof gameState.score === 'number') {
-				saveScore(gameState.score);
+				await saveScore(gameState.score);
+				highScores = await getHighScores();
 			} else {
 				console.error('Attempted to save invalid score:', gameState.score);
 			}
@@ -90,7 +91,7 @@
 	});
 
 	function dropCurrentFruit() {
-		if (!gameState || gameState.gameOver || isDropping) return;
+		if (!gameState || gameState.status !== 'playing' || isDropping) return;
 
 		isDropping = true;
 
@@ -172,7 +173,7 @@
 				{/each}
 
 				<!-- Preview fruit - Appears when not dropping -->
-				{#if !gameState.gameOver && !isDropping && currentFruit}
+				{#if gameState.status !== 'gameover' && !isDropping && currentFruit}
 					<div
 						class="preview-fruit"
 						aria-hidden="true"
@@ -203,8 +204,9 @@
 
 		{#if gameState}
 			<GameOverModal
-				open={gameState.gameOver}
+				open={gameState.status === 'gameover'}
 				score={gameState.score}
+				scores={highScores}
 				onClose={handleGameOverClose} />
 		{/if}
 	</div>
@@ -256,9 +258,9 @@
 	.game {
 		--color-border: hsla(0, 0%, 0%, 0.1);
 		--color-border-light: hsla(0, 0%, 0%, 0.075);
-		--color-background: hsl(0, 0%, 93%);
+		--color-background: hsl(0, 0%, 95%);
 		--color-background-light: hsl(0, 0%, 99%);
-		--color-background-dark: hsl(0, 0%, 89%);
+		--color-background-dark: hsl(0, 0%, 90%);
 		--color-text: hsl(0, 0%, 20%);
 		--color-light-text: hsl(0, 0%, 35%);
 		--color-very-light-text: hsl(0, 0%, 50%);
@@ -295,6 +297,10 @@
 
 		:global(b, strong, h1, h2, h3, h4, h5, h6) {
 			font-weight: 550;
+		}
+
+		:global(h1, h2, h3, h4, h5, h6) {
+			margin: 0;
 		}
 
 		:global(button) {

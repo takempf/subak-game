@@ -5,6 +5,7 @@ interface Score {
 }
 interface LeaderboardProps {
     scores: Score[];
+    highlightScore?: number;
 }
 declare const Leaderboard: import("svelte").Component<LeaderboardProps, {}, "">;
 type Leaderboard = ReturnType<typeof Leaderboard>;

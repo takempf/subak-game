@@ -1,12 +1,21 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { quadOut } from 'svelte/easing';
 	import { fade, scale } from 'svelte/transition';
+
+	interface PropsInterface {
+		open: boolean;
+		onClose: () => void;
+		prepend?: Snippet;
+		children: Snippet;
+		append?: Snippet;
+	}
 
 	// --- Props ---
 	// `open`: Controls the visibility of the modal (bindable)
 	// `onClose`: Callback function triggered when the modal requests to be closed
 	// `children`: Slot content for the modal body
-	let { open = false, onClose = () => {}, children } = $props();
+	let { open = false, onClose = () => {}, prepend, children, append }: PropsInterface = $props();
 
 	// --- Effects ---
 	// Effect to handle the ESC key press for closing the modal
@@ -51,9 +60,8 @@
     -->
 		<div
 			class="custom-backdrop"
-			onclick={requestClose}
 			aria-hidden="true"
-			in:fade={{ easing: quadOut, duration: 250 }}
+			in:fade={{ easing: quadOut, duration: 150 }}
 			out:fade={{ easing: quadOut, duration: 250, delay: 100 }}>
 		</div>
 
@@ -64,8 +72,14 @@
     -->
 		<div
 			class="modal-body"
-			in:scale={{ easing: quadOut, duration: 400, delay: 100, start: 0.9 }}
+			in:scale={{ easing: quadOut, duration: 200, delay: 50, start: 0.9 }}
 			out:scale={{ easing: quadOut, duration: 400, start: 0.9 }}>
+			{#if prepend}
+				<header class="modal-prepend">
+					{@render prepend()}
+				</header>
+			{/if}
+
 			<div class="modal-content">
 				<!-- Close Button -->
 				<button class="close-button" onclick={requestClose} aria-label="Close dialog">
@@ -75,6 +89,12 @@
 				<!-- Slot for user content -->
 				{@render children()}
 			</div>
+
+			{#if append}
+				<footer class="modal-append">
+					{@render append()}
+				</footer>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -116,6 +136,7 @@
 		box-shadow: hsla(0, 0%, 0%, 0.2) 0 2px 2px;
 
 		/* Sizing and Scrolling */
+		min-width: 60cqi;
 		max-width: 100%; /* Respect wrapper padding */
 		max-height: 100%; /* Respect wrapper padding */
 		overflow: auto; /* Allow scrolling if content exceeds size */
@@ -124,6 +145,12 @@
 	.modal-content {
 		padding: 1.5em; /* Internal padding for content */
 		position: relative; /* Needed for absolute positioning of close button */
+	}
+
+	.modal-append {
+		padding: 0.5em 1.5em;
+		border-top: var(--color-border) 1px solid;
+		font-size: 0.8em;
 	}
 
 	.close-button {
