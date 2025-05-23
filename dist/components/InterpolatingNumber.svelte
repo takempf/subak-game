@@ -15,5 +15,5 @@
 </script>
 
 <span class="interpolating-number">
-	{roundedDisplay}
+	{Intl.NumberFormat().format(roundedDisplay)}
 </span>

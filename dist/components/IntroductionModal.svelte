@@ -1,12 +1,14 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
+	import { onMount } from 'svelte';
 
 	import { getHighScores } from '../stores/db';
-	import { onMount } from 'svelte';
+
+	import Modal from './Modal.svelte';
 	import Leaderboard from './Leaderboard.svelte';
 	import Fruit from './Fruit.svelte';
+	import ModalCreditsFooter from './ModalCreditsFooter.svelte';
 
-	const { open, gameOver, onClose } = $props();
+	const { open, gameStatus, onClose } = $props();
 
 	let highScores = $state([]);
 
@@ -18,10 +20,24 @@
 		onClose();
 	}
 
-	const startButtonText = $derived(gameOver ? 'Start Game' : 'Resume Game');
+	const startButtonText = $derived.by(() => {
+		switch (gameStatus) {
+			case 'gameover':
+				return 'Start New Game';
+
+			case 'paused':
+				return 'Resume Game';
+
+			case 'uninitialized':
+			default:
+				return 'Start Game';
+		}
+	});
 </script>
 
-<Modal {open} {onClose}>
+{#snippet append()}<ModalCreditsFooter />{/snippet}
+
+<Modal {open} {onClose} {append}>
 	<div class="content">
 		<h2 class="heading">Subak Game <Fruit name="watermelon" radius="1em" /></h2>
 		<div>
@@ -29,7 +45,7 @@
 			<Fruit name="orange" radius="1em" display="inline" />.<br />Try to get to a <Fruit
 				name="watermelon"
 				radius="1em"
-				display="inline" />.
+				display="inline" />!
 		</div>
 		<Leaderboard scores={highScores} />
 		<button onclick={handleStartClick}>{startButtonText}</button>
@@ -50,6 +66,6 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1em;
+		gap: 1.5em;
 	}
 </style>

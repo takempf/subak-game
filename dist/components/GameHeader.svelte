@@ -11,10 +11,12 @@
 
 	function handleIntroductionClick() {
 		showIntroduction = true;
+		gameState.setStatus('paused');
 	}
 
 	function handleCloseIntroduction() {
 		showIntroduction = false;
+		gameState.setStatus('playing');
 	}
 
 	function handleMuteClick() {
@@ -42,7 +44,7 @@
 
 <IntroductionModal
 	open={showIntroduction}
-	gameOver={gameState?.gameOver}
+	gameStatus={gameState?.status}
 	onClose={handleCloseIntroduction} />
 
 <style>

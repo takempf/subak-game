@@ -20,10 +20,11 @@ interface GameStateProps {
     imagesPath?: string;
     soundsPath?: string;
 }
+export type GameStatus = 'uninitialized' | 'playing' | 'paused' | 'gameover';
 export declare class GameState {
     audioManager: AudioManager | null;
     score: number;
-    gameOver: boolean;
+    status: GameStatus;
     currentFruitIndex: number;
     nextFruitIndex: number;
     fruits: Fruit[];
@@ -57,7 +58,7 @@ export declare class GameState {
     restartGame(): void;
     getRandomFruitIndex(limit?: number): number;
     setScore(newScore: number): void;
-    setGameOver(newGameOver: boolean): void;
+    setStatus(newStatus: GameStatus): void;
     setCurrentFruitIndex(newCurrentFruitIndex: number): void;
     setNextFruitIndex(newNextFruitIndex: number): void;
     setFruitsState(newFruits: FruitState[]): void;

@@ -22,7 +22,7 @@ function mapRange(value, inMin, inMax, outMin, outMax) {
 export class GameState {
     audioManager = null;
     score = $state(0);
-    gameOver = $state(false);
+    status = $state('uninitialized');
     currentFruitIndex = $state(0);
     nextFruitIndex = $state(0);
     fruits = [];
@@ -55,7 +55,7 @@ export class GameState {
         })();
     }
     update() {
-        if (this.gameOver) {
+        if (this.status === 'gameover') {
             // Stop loop if component destroyed or game over
             if (this.animationFrameId) {
                 cancelAnimationFrame(this.animationFrameId);
@@ -83,7 +83,7 @@ export class GameState {
         }
         catch (error) {
             console.error('Failed to initialize Rapier or create physics world:', error);
-            this.setGameOver(true);
+            this.setStatus('gameover');
         }
     }
     stepPhysics() {
@@ -298,12 +298,12 @@ export class GameState {
         this.setDropCount(this.dropCount + 1);
     }
     checkGameOver() {
-        if (this.gameOver)
+        if (this.status === 'gameover')
             return;
         for (const fruit of this.fruits) {
             if (fruit.isOutOfBounds()) {
                 console.log('Game Over condition met!');
-                this.setGameOver(true);
+                this.setStatus('gameover');
                 break;
             }
         }
@@ -322,7 +322,7 @@ export class GameState {
         this.setFruitsState([]);
         this.setMergeEffects([]);
         this.setScore(0);
-        this.setGameOver(false);
+        this.setStatus('playing');
         this.setCurrentFruitIndex(this.getRandomFruitIndex());
         this.setNextFruitIndex(this.getRandomFruitIndex());
     }
@@ -337,8 +337,8 @@ export class GameState {
     setScore(newScore) {
         this.score = newScore;
     }
-    setGameOver(newGameOver) {
-        this.gameOver = newGameOver;
+    setStatus(newStatus) {
+        this.status = newStatus;
     }
     setCurrentFruitIndex(newCurrentFruitIndex) {
         this.currentFruitIndex = newCurrentFruitIndex;
