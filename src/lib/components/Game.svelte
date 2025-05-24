@@ -19,6 +19,7 @@
 	import GameSidebar from './GameSidebar.svelte';
 	import GameHeader from './GameHeader.svelte';
 	import GameOverModal from './GameOverModal.svelte';
+	import DebugMenu from './DebugMenu.svelte';
 
 	// Import Constants and Types
 	import {
@@ -208,6 +209,7 @@
 				score={gameState.score}
 				scores={highScores}
 				onClose={handleGameOverClose} />
+			<DebugMenu {gameState} />
 		{/if}
 	</div>
 </div>
