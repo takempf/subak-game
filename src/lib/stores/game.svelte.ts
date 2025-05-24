@@ -469,8 +469,7 @@ export class GameState {
 		if (newStatus === 'playing') {
 			if (oldStatus !== 'playing') {
 				this.lastTime = performance.now(); // Reset lastTime for correct delta on resume
-				if (!this.animationFrameId) {
-					// Avoid multiple loops
+				if (!this.animationFrameId) { // Avoid multiple loops
 					this.update();
 				}
 			}
