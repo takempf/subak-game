@@ -10,6 +10,13 @@
 </main>
 
 <style>
+	:global(html) {
+		font-family: Geist, Inter, sans-serif;
+		font-optical-sizing: auto;
+		font-style: normal;
+		font-weight: 400;
+	}
+
 	:global(body, html) {
 		margin: 0;
 		padding: 0;
