@@ -97,14 +97,14 @@ export class GameState {
 			this.audioManager = new AudioManager({ soundsPath });
 			this.throttledCheckGameOver = throttle(this.checkGameOver, 500);
 			await this.initPhysics();
-			this.resetGame();
-			this.update();
+			this.resetGame(); // resetGame will now set status to 'uninitialized'
+			// this.update() is removed, game won't auto-start
 		})();
 	}
 
 	update() {
-		if (this.status === 'gameover') {
-			// Stop loop if component destroyed or game over
+		// Ensure loop only runs if status is 'playing'
+		if (this.status !== 'playing') {
 			if (this.animationFrameId) {
 				cancelAnimationFrame(this.animationFrameId);
 				this.animationFrameId = null;
@@ -114,7 +114,17 @@ export class GameState {
 
 		this.stepPhysics(); // Run physics step
 		this.throttledCheckGameOver?.(); // We done here?
-		this.animationFrameId = requestAnimationFrame(() => this.update()); // Request next frame
+
+		// Only request next frame if still playing
+		if (this.status === 'playing') {
+			this.animationFrameId = requestAnimationFrame(() => this.update());
+		} else {
+			// If status changed mid-update (e.g. gameover), ensure cleanup
+			if (this.animationFrameId) {
+				cancelAnimationFrame(this.animationFrameId);
+				this.animationFrameId = null;
+			}
+		}
 	}
 
 	async initPhysics(): Promise<void> {
@@ -434,15 +444,14 @@ export class GameState {
 		this.setFruitsState([]);
 		this.setMergeEffects([]);
 		this.setScore(0);
-		this.setStatus('playing');
+		this.setStatus('uninitialized'); // Set to uninitialized, GameHeader will transition to playing
 		this.setCurrentFruitIndex(this.getRandomFruitIndex());
 		this.setNextFruitIndex(this.getRandomFruitIndex());
 	}
 
 	restartGame(): void {
-		this.resetGame();
-		// start the loop again
-		this.update();
+		this.resetGame(); // This will set status to 'uninitialized'
+		this.setStatus('playing'); // This will trigger the game loop via the modified setStatus
 	}
 
 	getRandomFruitIndex(limit: number = 5) {
@@ -454,7 +463,23 @@ export class GameState {
 	}
 
 	setStatus(newStatus: GameStatus) {
+		const oldStatus = this.status;
 		this.status = newStatus;
+
+		if (newStatus === 'playing') {
+			if (oldStatus !== 'playing') {
+				this.lastTime = performance.now(); // Reset lastTime for correct delta on resume
+				if (!this.animationFrameId) {
+					// Avoid multiple loops
+					this.update();
+				}
+			}
+		} else if (['paused', 'gameover', 'uninitialized'].includes(newStatus)) {
+			if (this.animationFrameId) {
+				cancelAnimationFrame(this.animationFrameId);
+				this.animationFrameId = null;
+			}
+		}
 	}
 
 	setCurrentFruitIndex(newCurrentFruitIndex: number) {
@@ -479,5 +504,11 @@ export class GameState {
 
 	destroy() {
 		console.log('destroy Game State');
+		this.setStatus('gameover'); // Ensure loop stops and cleanup occurs
+		if (this.animationFrameId) {
+			cancelAnimationFrame(this.animationFrameId);
+			this.animationFrameId = null;
+		}
+		// Any other cleanup specific to destroying the game instance
 	}
 }
