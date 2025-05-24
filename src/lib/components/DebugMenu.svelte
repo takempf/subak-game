@@ -4,8 +4,13 @@
 
   const { gameState } = $props<{ gameState: GameState }>();
 
+  let isCollapsed = $state(false);
   let selectedFruitIndex = $state(0);
   let selectedXPosition = $state(GAME_WIDTH / 2);
+
+  function toggleCollapse() {
+    isCollapsed = !isCollapsed;
+  }
 
   function handleDropFruit() {
     if (gameState) {
@@ -21,10 +26,17 @@
 </script>
 
 <div class="debug-menu">
-  <h3>Debug Menu</h3>
+  <div class="debug-menu-header">
+    <h3>Debug Menu</h3>
+    <button class="toggle-button" onclick={toggleCollapse}>
+      {#if isCollapsed}Show{:else}Hide{/if}
+    </button>
+  </div>
 
-  <div>
-    <label for="fruit-select">Select Fruit:</label>
+  {#if !isCollapsed}
+  <div class="debug-menu-content">
+    <div>
+      <label for="fruit-select">Select Fruit:</label>
     <select id="fruit-select" bind:value={selectedFruitIndex}>
       {#each FRUITS as fruit, index}
         <option value={index}>{fruit.name} (Index: {index})</option>
@@ -48,9 +60,13 @@
     <button onclick={handleDropFruit}>Drop Fruit</button>
   </div>
 
-  <div>
-    <button onclick={handleEndGame}>End Game</button>
+    </div>
+
+    <div>
+      <button onclick={handleEndGame}>End Game</button>
+    </div>
   </div>
+  {/if}
 </div>
 
 <style>
@@ -66,16 +82,37 @@
     font-family: Arial, sans-serif; /* Common sans-serif font */
     width: 280px; /* Define a width */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    transition: height 0.3s ease; /* Basic animation for height change */
+  }
+
+  .debug-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px; /* Space between header and content or bottom border */
   }
 
   .debug-menu h3 {
     margin-top: 0;
-    margin-bottom: 15px; /* More space below title */
+    margin-bottom: 0; /* Adjusted as margin-bottom is now on debug-menu-header */
     font-size: 1.1em;
     color: #343a40; /* Darker text for title */
   }
 
-  .debug-menu div {
+  .toggle-button {
+    padding: 4px 8px !important; /* Smaller padding for toggle button, !important to override generic button style */
+    font-size: 0.8em !important; /* Smaller font size */
+    background-color: #6c757d !important; /* Secondary button color */
+    color: white !important;
+    width: auto !important; /* Allow button to size to content */
+    min-width: 50px; /* Ensure a minimum width for "Show"/"Hide" */
+  }
+
+  .toggle-button:hover {
+    background-color: #5a6268 !important; /* Darker secondary on hover */
+  }
+
+  .debug-menu-content div { /* Apply to divs inside the content area */
     margin-bottom: 12px; /* Consistent spacing for control groups */
   }
 
@@ -102,7 +139,7 @@
     padding: 0; /* Range input padding is often handled differently by browsers */
   }
 
-  .debug-menu button {
+  .debug-menu button:not(.toggle-button) { /* Style action buttons, not the toggle */
     background-color: #007bff; /* Bootstrap primary blue */
     color: white;
     border: none;
@@ -110,7 +147,7 @@
     transition: background-color 0.2s ease-in-out;
   }
 
-  .debug-menu button:hover {
+  .debug-menu button:not(.toggle-button):hover {
     background-color: #0056b3; /* Darker blue on hover */
   }
 </style>
