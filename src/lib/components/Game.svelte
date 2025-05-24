@@ -278,7 +278,7 @@
 		--border-radius: 1em;
 
 		display: grid;
-		grid-template-columns: 1fr 4fr;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 4fr);
 		grid-template-areas: 'header header' 'sidebar gameplay';
 
 		position: relative;

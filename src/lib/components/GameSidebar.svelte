@@ -48,8 +48,8 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-around;
-		gap: 1em;
-		padding: 1em;
+		gap: 0.75em;
+		padding: 0.75em;
 	}
 
 	.section {
@@ -88,7 +88,8 @@
 		font-size: 1.5em;
 		border: var(--color-border-light) 1px solid;
 		border-radius: 1em;
-		padding: 0.5em 0.75em;
+		padding: 0.25em 0.5em;
+		max-width: 100%;
 	}
 
 	@media (max-width: 480px) {
