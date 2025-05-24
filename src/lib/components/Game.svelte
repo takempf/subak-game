@@ -55,7 +55,7 @@
 		setContext('gameState', gameState);
 
 		const urlParams = new URLSearchParams(window.location.search);
-		showDebugMenu = urlParams.get("debug") === "true";
+		showDebugMenu = urlParams.get('debug') === 'true';
 
 		return function onUnmount() {
 			gameState.destroy();
