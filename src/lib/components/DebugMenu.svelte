@@ -57,7 +57,7 @@
   </div>
 
   <div>
-    <button onclick={handleDropFruit}>Drop Fruit</button>
+    <button onclick={handleDropFruit} disabled={gameState?.status !== 'playing'}>Drop Fruit</button>
   </div>
 
     </div>
