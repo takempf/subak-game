@@ -55,8 +55,9 @@
 		setContext('gameState', gameState);
 
 		const urlParams = new URLSearchParams(window.location.search);
-		const isDebugQuery = urlParams.get("debug") === "true";
-		const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+		const isDebugQuery = urlParams.get('debug') === 'true';
+		const isLocalhost =
+			window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 		showDebugMenu = isDebugQuery && isLocalhost;
 
 		return function onUnmount() {
