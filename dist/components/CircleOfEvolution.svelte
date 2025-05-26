@@ -57,7 +57,7 @@
 		}
 	}
 
-	@media (max-width: 480px) {
+	@media (aspect-ratio < 0.65) {
 		.fruits {
 			padding: 0 10px;
 		}

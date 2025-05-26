@@ -92,7 +92,7 @@
 		max-width: 100%;
 	}
 
-	@media (max-width: 480px) {
+	@media (aspect-ratio < 0.65) {
 		.game-sidebar {
 			flex-direction: row;
 			flex-wrap: wrap;
