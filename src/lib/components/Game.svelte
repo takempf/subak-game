@@ -5,6 +5,7 @@
 
 	// Import Stores and Types
 	import { GameState } from '../stores/game.svelte.js';
+	import type { GameEvent } from '../game/events';
 	import { saveScore, getHighScores } from '../stores/db';
 
 	// Import Utilities
@@ -31,7 +32,15 @@
 		DEFAULT_SOUNDS_PATH
 	} from '../constants';
 
-	const { imagesPath = DEFAULT_IMAGES_PATH, soundsPath = DEFAULT_SOUNDS_PATH } = $props();
+	const {
+		imagesPath = DEFAULT_IMAGES_PATH,
+		soundsPath = DEFAULT_SOUNDS_PATH,
+		onEvent = undefined
+	} = $props<{
+		imagesPath?: string;
+		soundsPath?: string;
+		onEvent?: ((event: GameEvent) => void) | undefined;
+	}>();
 
 	// Game state reference
 	let gameState = $state<GameState | null>(null);
@@ -49,23 +58,38 @@
 	setContext('imagesPath', imagesPath);
 	setContext('soundsPath', soundsPath);
 
-	onMount(() => {
-		gameState = new GameState({
+	$effect(async () => { // Make the effect callback async
+		// console.log('Game.svelte: $effect for gameState setup running.');
+		const newGameState = new GameState({
 			imagesPath,
 			soundsPath
 		});
 
-		setContext('gameState', gameState);
+		await newGameState.initialize(); // Await the new initialize method
 
+		if (typeof onEvent === 'function') {
+			// console.log('Game.svelte: Attaching onEvent callback to gameState.');
+			newGameState.onEventCallback = onEvent;
+		} else {
+			newGameState.onEventCallback = null; // Clear if not provided or undefined
+		}
+		
+		gameState = newGameState;
+		setContext('gameState', newGameState); // Update context with the new instance
+
+		// Cleanup when imagesPath, soundsPath, or onEvent prop changes, or component unmounts
+		return () => {
+			newGameState.destroy();
+		};
+	});
+
+	onMount(() => {
 		const urlParams = new URLSearchParams(window.location.search);
 		const isDebugQuery = urlParams.get('debug') === 'true';
 		const isLocalhost =
 			window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 		showDebugMenu = isDebugQuery && isLocalhost;
-
-		return function onUnmount() {
-			gameState.destroy();
-		};
+		// No need to return gameState.destroy from here anymore as the $effect handles it.
 	});
 
 	$effect(() => {

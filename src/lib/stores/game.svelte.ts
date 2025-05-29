@@ -18,6 +18,7 @@ import {
 import { throttle } from '../utils/throttle';
 import { AudioManager } from '../game/AudioManager.svelte';
 import { Boundary } from '../game/Boundary';
+import type { GameEvent, FruitDropEvent, FruitMergeEvent, GameStartEvent, GameOverEvent, GamePauseEvent, GameStatusEvent } from '../game/events';
 
 // --- Constants for Volume Mapping ---
 const MIN_VELOCITY_FOR_SOUND = 0.2; // Ignore very gentle taps
@@ -90,17 +91,33 @@ export class GameState {
 	soundsPath: string = DEFAULT_SOUNDS_PATH;
 
 	throttledCheckGameOver?: () => void;
+	onEventCallback: ((event: GameEvent) => void) | null = null;
 
 	constructor({ imagesPath, soundsPath }: GameStateProps) {
-		(async () => {
-			if (imagesPath) this.imagesPath = imagesPath;
-			if (soundsPath) this.soundsPath = soundsPath;
-			this.audioManager = new AudioManager({ soundsPath });
-			this.throttledCheckGameOver = throttle(this.checkGameOver, 500);
-			await this.initPhysics();
-			this.resetGame(); // resetGame will now set status to 'uninitialized'
-			// this.update() is removed, game won't auto-start
-		})();
+		if (imagesPath) this.imagesPath = imagesPath;
+		if (soundsPath) this.soundsPath = soundsPath;
+		// audioManager, throttledCheckGameOver, initPhysics, and resetGame will be in initialize()
+	}
+
+	async initialize(): Promise<void> {
+		this.audioManager = new AudioManager({ soundsPath: this.soundsPath });
+		this.throttledCheckGameOver = throttle(this.checkGameOver, 500);
+		await this.initPhysics();
+		this.resetGame(); // resetGame will now set status to 'uninitialized'
+		// Note: The original update() call is removed; game won't auto-start from here.
+		// Status will be set to 'playing' by GameHeader or restartGame, which then calls update().
+	}
+
+	private _dispatchEvent(eventData: Omit<GameEvent, 'timestamp'>): void {
+		const event: GameEvent = {
+			...eventData,
+			timestamp: performance.now(),
+		} as GameEvent; // Type assertion might be needed if TS struggles with the union Omit
+
+		if (this.onEventCallback) {
+			this.onEventCallback(event);
+		}
+		// TODO: Later, we might add internal event logging here if needed for scoreboard verification
 	}
 
 	update() {
@@ -384,8 +401,14 @@ export class GameState {
 		// 4. Add the new, larger fruit (addFruit will update map and array)
 		this.addFruit(nextIndex, midpoint.x, midpoint.y);
 
-		// Update the score
-		this.setScore(this.score + (nextFruitType.points || 0));
+		// Add score AFTER adding fruit, so GAME_OVER event (if triggered by merge) has updated score
+		this.setScore(this.score + (FRUITS[nextIndex]?.points || 0));
+
+		this._dispatchEvent({
+			eventName: 'FRUIT_MERGE',
+			newFruitIndex: nextIndex,
+			coordinates: { x: midpoint.x, y: midpoint.y }
+		});
 
 		console.log(
 			`Merged handles ${fruitA.body.handle}, ${fruitB.body.handle}. New fruits count: ${this.fruits.length}`
@@ -413,6 +436,11 @@ export class GameState {
 
 	dropFruit(fruitIndex: number, x: number, y: number): void {
 		this.addFruit(fruitIndex, x, y);
+		this._dispatchEvent({
+			eventName: 'FRUIT_DROP',
+			fruitIndex: fruitIndex,
+			coordinates: { x, y }
+		});
 		this.setCurrentFruitIndex(this.nextFruitIndex);
 		this.setNextFruitIndex(this.getRandomFruitIndex());
 		this.setDropCount(this.dropCount + 1);
@@ -466,17 +494,40 @@ export class GameState {
 
 	setStatus(newStatus: GameStatus) {
 		const oldStatus = this.status;
-		this.status = newStatus;
 
+		// Dispatch GAME_STATUS first
+		this._dispatchEvent({
+			eventName: 'GAME_STATUS',
+			previousStatus: oldStatus,
+			currentStatus: newStatus
+		});
+
+		this.status = newStatus; // Update status
+
+		// Now handle logic based on the new status
 		if (newStatus === 'playing') {
 			if (oldStatus !== 'playing') {
-				this.lastTime = performance.now(); // Reset lastTime for correct delta on resume
+				// Check if actually transitioning to playing
+				this._dispatchEvent({ eventName: 'GAME_START' });
+				this.lastTime = performance.now();
 				if (!this.animationFrameId) {
-					// Avoid multiple loops
 					this.update();
 				}
 			}
-		} else if (['paused', 'gameover', 'uninitialized'].includes(newStatus)) {
+		} else if (newStatus === 'paused') {
+			this._dispatchEvent({ eventName: 'GAME_PAUSE' });
+			if (this.animationFrameId) {
+				cancelAnimationFrame(this.animationFrameId);
+				this.animationFrameId = null;
+			}
+		} else if (newStatus === 'gameover') {
+			this._dispatchEvent({ eventName: 'GAME_OVER', score: this.score });
+			if (this.animationFrameId) {
+				cancelAnimationFrame(this.animationFrameId);
+				this.animationFrameId = null;
+			}
+		} else if (newStatus === 'uninitialized') {
+			// Potentially dispatch an UNINITIALIZED event if needed, or just handle state
 			if (this.animationFrameId) {
 				cancelAnimationFrame(this.animationFrameId);
 				this.animationFrameId = null;
