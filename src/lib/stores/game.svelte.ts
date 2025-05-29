@@ -17,6 +17,7 @@ import {
 } from '../constants'; // Ensure constants are correctly typed in their file
 import { throttle } from '../utils/throttle';
 import { AudioManager } from '../game/AudioManager.svelte';
+import { dispatch, eventNames } from '../analytics/eventManager';
 import { Boundary } from '../game/Boundary';
 
 // --- Constants for Volume Mapping ---
@@ -354,6 +355,20 @@ export class GameState {
 		}
 		const newFruitRadius = nextFruitType.radius;
 
+		// Dispatch event before removing fruits
+		const fruitAName = FRUITS[fruitA.fruitIndex]?.name || 'Unknown Fruit A';
+		const fruitBName = FRUITS[fruitB.fruitIndex]?.name || 'Unknown Fruit B';
+		const mergedIntoName = FRUITS[nextIndex]?.name || 'Unknown Merged Fruit';
+		dispatch(eventNames.FRUIT_MERGE, {
+			fruitA: fruitAName,
+			fruitAIndex: fruitA.fruitIndex,
+			fruitB: fruitBName,
+			fruitBIndex: fruitB.fruitIndex,
+			mergedInto: mergedIntoName,
+			mergedIntoIndex: nextIndex,
+			positionX: midpoint.x
+		});
+
 		// 1. Remove the old bodies from the physics world *first*
 		fruitA.destroy();
 		fruitB.destroy();
@@ -416,6 +431,13 @@ export class GameState {
 		this.setCurrentFruitIndex(this.nextFruitIndex);
 		this.setNextFruitIndex(this.getRandomFruitIndex());
 		this.setDropCount(this.dropCount + 1);
+		// Ensure FRUITS[fruitIndex] exists and has a name property
+		const fruitName = FRUITS[fruitIndex]?.name || 'Unknown Fruit';
+		dispatch(eventNames.FRUIT_DROP, {
+			fruitName: fruitName,
+			positionX: x,
+			fruitIndex: fruitIndex
+		});
 	}
 
 	checkGameOver(): void {
@@ -462,6 +484,7 @@ export class GameState {
 
 	setScore(newScore: number) {
 		this.score = newScore;
+		dispatch(eventNames.SCORE_CHANGE, { newScore: newScore });
 	}
 
 	setStatus(newStatus: GameStatus) {
@@ -475,8 +498,15 @@ export class GameState {
 					// Avoid multiple loops
 					this.update();
 				}
+				dispatch(eventNames.GAME_START);
 			}
-		} else if (['paused', 'gameover', 'uninitialized'].includes(newStatus)) {
+		} else if (newStatus === 'gameover') {
+			if (this.animationFrameId) {
+				cancelAnimationFrame(this.animationFrameId);
+				this.animationFrameId = null;
+			}
+			dispatch(eventNames.GAME_OVER, { finalScore: this.score });
+		} else if (['paused', 'uninitialized'].includes(newStatus)) {
 			if (this.animationFrameId) {
 				cancelAnimationFrame(this.animationFrameId);
 				this.animationFrameId = null;

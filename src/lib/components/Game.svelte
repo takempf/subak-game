@@ -17,6 +17,8 @@
 	import MergeEffect from './MergeEffect.svelte';
 	import GameEntity from './GameEntity.svelte';
 	import GameSidebar from './GameSidebar.svelte';
+	import { on as onGameEvent, eventNames as gameEventNames } from '../lib/analytics/eventManager';
+	import { trackFathomEvent } from '../lib/analytics/fathom';
 	import GameHeader from './GameHeader.svelte';
 	import GameOverModal from './GameOverModal.svelte';
 	import DebugMenu from '../components/DebugMenu.svelte';
@@ -56,6 +58,44 @@
 		});
 
 		setContext('gameState', gameState);
+
+		// --- Fathom Analytics Event Tracking ---
+		onGameEvent(gameEventNames.GAME_START, () => {
+			trackFathomEvent('GAME_START');
+		});
+
+		onGameEvent(gameEventNames.FRUIT_DROP, (data) => {
+			// Fathom event names should be concise and descriptive.
+			// We can include additional details as part of the event name if desired,
+			// or decide to only send generic event names.
+			// For FRUIT_DROP, let's send a generic event name, assuming the
+			// detailed payload isn't directly used by Fathom for goal completion value.
+			trackFathomEvent('FRUIT_DROP');
+			// If we wanted to send fruit name or position as part of Fathom event:
+			// trackFathomEvent(`FRUIT_DROP_${data.fruitName}_X${Math.round(data.positionX)}`);
+		});
+
+		onGameEvent(gameEventNames.FRUIT_MERGE, (data) => {
+			// Similar to FRUIT_DROP, sending a generic event name.
+			trackFathomEvent('FRUIT_MERGE');
+			// Example if we wanted more detail in Fathom event name:
+			// trackFathomEvent(`MERGE_${data.fruitA}_${data.fruitB}_TO_${data.mergedInto}`);
+		});
+
+		onGameEvent(gameEventNames.SCORE_CHANGE, (data) => {
+			// Assuming score is a direct value we want to track.
+			// Fathom's _value is in cents. If score is not in cents, adjust accordingly.
+			// For this example, let's assume the score itself can be a value, or we send it as 0 if not monetary.
+			// If the score represents a monetary value (e.g., points = currency cents), use it.
+			// Otherwise, if it's just points, Fathom typically doesn't use _value for that.
+			// Let's send the score as the value, assuming 1 point = 1 cent for this example.
+			trackFathomEvent('SCORE_CHANGE', { valueInCents: data.newScore });
+		});
+
+		onGameEvent(gameEventNames.GAME_OVER, (data) => {
+			trackFathomEvent('GAME_OVER', { valueInCents: data.finalScore });
+		});
+		// --- End Fathom Analytics Event Tracking ---
 
 		const urlParams = new URLSearchParams(window.location.search);
 		const isDebugQuery = urlParams.get('debug') === 'true';
