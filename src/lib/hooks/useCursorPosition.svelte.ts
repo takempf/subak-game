@@ -59,6 +59,29 @@ export function useCursorPosition(): {
 			updatePosition(event.clientX, event.clientY);
 		};
 
+		// --- Pointer Events ---
+		const handlePointerDown = (event: PointerEvent) => {
+			updateRect();
+			updatePosition(event.clientX, event.clientY);
+			try {
+				element.setPointerCapture(event.pointerId);
+			} catch {
+				/* noop - some environments (tests) may not support pointer capture */
+			}
+		};
+
+		const handlePointerMove = (event: PointerEvent) => {
+			updatePosition(event.clientX, event.clientY);
+		};
+
+		const handlePointerUp = (event: PointerEvent) => {
+			try {
+				element.releasePointerCapture(event.pointerId);
+			} catch {
+				/* noop */
+			}
+		};
+
 		// --- Touch Start Handler (updates position immediately on touch) ---
 		const handleTouchStart = (event: TouchEvent) => {
 			if (event.touches.length > 0) {
@@ -80,6 +103,10 @@ export function useCursorPosition(): {
 
 		// --- Add Listeners ---
 		element.addEventListener('mousemove', handleMouseMove);
+		element.addEventListener('pointerdown', handlePointerDown);
+		element.addEventListener('pointermove', handlePointerMove);
+		element.addEventListener('pointerup', handlePointerUp);
+		element.addEventListener('pointercancel', handlePointerUp);
 		element.addEventListener('touchstart', handleTouchStart, {
 			passive: false
 		}); // Can be passive
@@ -92,13 +119,15 @@ export function useCursorPosition(): {
 
 		// --- Cleanup Function ---
 		return () => {
-			// console.log("Cleaning up listeners for:", element); // For debugging
 			element.removeEventListener('mousemove', handleMouseMove);
+			element.removeEventListener('pointerdown', handlePointerDown);
+			element.removeEventListener('pointermove', handlePointerMove);
+			element.removeEventListener('pointerup', handlePointerUp);
+			element.removeEventListener('pointercancel', handlePointerUp);
 			element.removeEventListener('touchstart', handleTouchStart);
 			element.removeEventListener('touchmove', handleTouchMove);
 			window.removeEventListener('scroll', updateRect);
 			window.removeEventListener('resize', updateRect);
-			// Reset cache on cleanup as well
 			cachedRect = null;
 		};
 	}); // Dependencies: ref
