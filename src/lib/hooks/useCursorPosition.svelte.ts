@@ -64,6 +64,7 @@ export function useCursorPosition(): {
 			if (event.touches.length > 0) {
 				const touch = event.touches[0];
 				updatePosition(touch.clientX, touch.clientY);
+				console.log("TouchEvent: touchstart", { x, y });
 			}
 		};
 
@@ -75,6 +76,25 @@ export function useCursorPosition(): {
 			if (event.touches.length > 0) {
 				const touch = event.touches[0];
 				updatePosition(touch.clientX, touch.clientY);
+				console.log("TouchEvent: touchmove", { x, y });
+			}
+		};
+
+		// --- Touch End Handler ---
+		const handleTouchEnd = (event: TouchEvent) => {
+			if (event.changedTouches.length > 0) {
+				const touch = event.changedTouches[0];
+				updatePosition(touch.clientX, touch.clientY);
+				console.log("TouchEvent: touchend", { x, y });
+			}
+		};
+
+		// --- Touch Cancel Handler ---
+		const handleTouchCancel = (event: TouchEvent) => {
+			if (event.changedTouches.length > 0) {
+				const touch = event.changedTouches[0];
+				updatePosition(touch.clientX, touch.clientY);
+				console.log("TouchEvent: touchcancel", { x, y });
 			}
 		};
 
@@ -84,6 +104,8 @@ export function useCursorPosition(): {
 			passive: false
 		}); // Can be passive
 		element.addEventListener('touchmove', handleTouchMove, { passive: false }); // Must be active to preventDefault
+		element.addEventListener('touchend', handleTouchEnd);
+		element.addEventListener('touchcancel', handleTouchCancel);
 
 		// Listen to window scroll and resize to update the cached rect
 		// Use { passive: true } for scroll/resize for better performance
@@ -96,6 +118,8 @@ export function useCursorPosition(): {
 			element.removeEventListener('mousemove', handleMouseMove);
 			element.removeEventListener('touchstart', handleTouchStart);
 			element.removeEventListener('touchmove', handleTouchMove);
+			element.removeEventListener('touchend', handleTouchEnd);
+			element.removeEventListener('touchcancel', handleTouchCancel);
 			window.removeEventListener('scroll', updateRect);
 			window.removeEventListener('resize', updateRect);
 			// Reset cache on cleanup as well

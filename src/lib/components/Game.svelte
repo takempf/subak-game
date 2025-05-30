@@ -102,10 +102,19 @@
 	});
 
 	function dropCurrentFruit() {
-		if (!gameState || gameState.status !== 'playing' || isDropping) return;
+		console.log("GameLogic: Attempting to drop fruit");
+		if (isDropping) {
+			console.log("GameLogic: Drop prevented by isDropping");
+			return;
+		}
+		if (!gameState || (gameState.status !== 'playing' && gameState.status !== 'ready')) {
+			console.log("GameLogic: Drop prevented by game status");
+			return;
+		}
 
 		isDropping = true;
 
+		console.log("GameLogic: Fruit dropped");
 		gameState.dropFruit(
 			gameState.currentFruitIndex,
 			(clampedMouseX / gameWidthPx) * GAME_WIDTH,
@@ -128,6 +137,7 @@
 		// browser navigation buttons functional.
 		if (event.button !== undefined && event.button !== 0) return;
 
+		console.log("PointerEvent: pointerup");
 		dropCurrentFruit();
 	}
 

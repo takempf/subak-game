@@ -191,4 +191,39 @@ describe('Game component', () => {
 		expect(fruitImages[0].getAttribute('src')).toContain(MOCK_FRUITS[1].image); // FruitB
 		expect(fruitImages[1].getAttribute('src')).toContain(MOCK_FRUITS[2].image); // FruitC
 	});
+
+	it('should call dropFruit on pointerup after pointerdown and pointermove sequence', async () => {
+		const { container, getAllByRole } = render(Game);
+		const mockGameState = instances[0] as MockGameState;
+
+		// Ensure the intro modal is closed and game is ready
+		await fireEvent.click(getAllByRole('button', { name: /start game/i })[0]);
+		mockGameState.setStatus('playing'); // Set status to allow dropping
+		await tick();
+
+		const gameplayArea = container.querySelector('.gameplay-area') as HTMLElement;
+		expect(gameplayArea).toBeTruthy();
+
+		// Mock getBoundingClientRect for the gameplay area
+		// This is important for clampedMouseX calculation which is used by dropFruit
+		Object.defineProperty(gameplayArea, 'getBoundingClientRect', {
+			value: ()_ => ({
+				left: 0,
+				top: 0,
+				width: 600, // Corresponds to GAME_WIDTH_PX if not overridden by component
+				height: 900,
+				right: 600,
+				bottom: 900
+			})
+		});
+
+		// Simulate pointer events
+		await fireEvent.pointerDown(gameplayArea, { clientX: 100, clientY: 100, button: 0 });
+		await fireEvent.pointerMove(gameplayArea, { clientX: 110, clientY: 110, button: 0 });
+		await fireEvent.pointerUp(gameplayArea, { clientX: 110, clientY: 110, button: 0 });
+
+		await tick(); // Allow Svelte to process the event and call dropFruit
+
+		expect(mockGameState.dropFruit).toHaveBeenCalled();
+	});
 });
