@@ -66,11 +66,11 @@
 		<!-- / Fathom -->
 
 		
-		<link rel="modulepreload" href="/_app/immutable/entry/start.Bo0lxw5K.js">
-		<link rel="modulepreload" href="/_app/immutable/chunks/D728-70E.js">
+		<link rel="modulepreload" href="/_app/immutable/entry/start.B1NQ8Zfk.js">
+		<link rel="modulepreload" href="/_app/immutable/chunks/D48bU2Du.js">
 		<link rel="modulepreload" href="/_app/immutable/chunks/CQ73_Am2.js">
 		<link rel="modulepreload" href="/_app/immutable/chunks/DL2YzMrV.js">
-		<link rel="modulepreload" href="/_app/immutable/entry/app.C2ZZUSVu.js">
+		<link rel="modulepreload" href="/_app/immutable/entry/app.BUN37_kA.js">
 		<link rel="modulepreload" href="/_app/immutable/chunks/Xcl2KTUD.js">
 		<link rel="modulepreload" href="/_app/immutable/chunks/DZ63trv_.js">
 		<link rel="modulepreload" href="/_app/immutable/chunks/Df6ZkciU.js">
@@ -79,18 +79,24 @@
 		<div>
 			<script>
 				{
-					__sveltekit_1pjn911 = {
+					__sveltekit_11q3n7h = {
 						base: ""
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/_app/immutable/entry/start.Bo0lxw5K.js"),
-						import("/_app/immutable/entry/app.C2ZZUSVu.js")
+						import("/_app/immutable/entry/start.B1NQ8Zfk.js"),
+						import("/_app/immutable/entry/app.BUN37_kA.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
+
+					if ('serviceWorker' in navigator) {
+						addEventListener('load', function () {
+							navigator.serviceWorker.register('/service-worker.js');
+						});
+					}
 				}
 			</script>
 		</div>
