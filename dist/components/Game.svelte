@@ -1,3 +1,5 @@
+<svelte:options customElement="subak-game" />
+
 <script lang="ts">
 	import { onMount, setContext } from 'svelte';
 	import { scale } from 'svelte/transition';
@@ -244,6 +246,12 @@
 </div>
 
 <style>
+	:host {
+		display: block;
+		width: clamp(100px, 100%, 700px);
+		max-width: calc(100svh * 2 / 3);
+	}
+
 	.game-container {
 		--min-container-width: 100;
 		--max-container-width: 600;
