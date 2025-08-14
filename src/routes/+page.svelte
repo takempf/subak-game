@@ -6,7 +6,7 @@
 
 <main>
 	<a class="tk" href="https://kempf.dev#subak" aria-label="kempf.dev"><TKIcon /></a>
-	<Game />
+	<subak-game />
 </main>
 
 <style>

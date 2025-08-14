@@ -13,7 +13,8 @@ const config = {
 	compilerOptions: {
 		experimental: {
 			async: true
-		}
+		},
+		customElement: true
 	}
 };
 
