@@ -9,7 +9,7 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js",
-			"import": "./dist/index.js"
+			"import": "./dist-js/index.js"
 		}
 	},
 	"files": [
@@ -23,6 +23,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
+		"build-js": "vite build --config vite.js.config.ts",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"prepack": "svelte-kit sync && svelte-package && publint",

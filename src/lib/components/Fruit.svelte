@@ -2,21 +2,21 @@
 	import { GAME_WIDTH, GAME_WIDTH_PX } from '../constants';
 
 	// Extract the SvgComponent type
-	import type BlueberrySvgComponent from '$lib/svg/blueberry.svg?component';
+	import type BlueberrySvgComponent from '../svg/blueberry.svg?component';
 	type SvgComponent = typeof BlueberrySvgComponent;
 
 	// Import all fruit manually
-	import Blueberry from '$lib/svg/blueberry.svg?component';
-	import Grape from '$lib/svg/grape.svg?component';
-	import Lemon from '$lib/svg/lemon.svg?component';
-	import Orange from '$lib/svg/orange.svg?component';
-	import Apple from '$lib/svg/apple.svg?component';
-	import Dragonfruit from '$lib/svg/dragonfruit.svg?component';
-	import Pear from '$lib/svg/pear.svg?component';
-	import Peach from '$lib/svg/peach.svg?component';
-	import Pineapple from '$lib/svg/pineapple.svg?component';
-	import Honeydew from '$lib/svg/honeydew.svg?component';
-	import Watermelon from '$lib/svg/watermelon.svg?component';
+	import Blueberry from '../svg/blueberry.svg?component';
+	import Grape from '../svg/grape.svg?component';
+	import Lemon from '../svg/lemon.svg?component';
+	import Orange from '../svg/orange.svg?component';
+	import Apple from '../svg/apple.svg?component';
+	import Dragonfruit from '../svg/dragonfruit.svg?component';
+	import Pear from '../svg/pear.svg?component';
+	import Peach from '../svg/peach.svg?component';
+	import Pineapple from '../svg/pineapple.svg?component';
+	import Honeydew from '../svg/honeydew.svg?component';
+	import Watermelon from '../svg/watermelon.svg?component';
 
 	const fruitSvgs: Record<string, SvgComponent> = {
 		Blueberry,
