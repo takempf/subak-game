@@ -1,7 +1,7 @@
 {
 	"name": "subak-game",
 	"description": "A game where you drop and merge fruit to make larger fruit.",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
