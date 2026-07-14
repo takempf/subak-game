@@ -214,20 +214,6 @@ describe('AudioManager', () => {
 	});
 
 	// -------------------------------------------------------------------------
-	// playSoundWithPitchVariation
-	// -------------------------------------------------------------------------
-	describe('playSoundWithPitchVariation', () => {
-		it('derives rate from Math.random within [minRate, maxRate]', async () => {
-			const manager = new AudioManager({ soundsPath });
-			await flushHowl();
-			vi.spyOn(Math, 'random').mockReturnValue(0.5);
-			// rate = 0.9 + 0.5 * (1.1 - 0.9) = 1.0
-			manager.playSoundWithPitchVariation('pop', 0.9, 1.1);
-			expect(getInstance(POP_IDX).rate).toHaveBeenCalledWith(1.0, 1);
-		});
-	});
-
-	// -------------------------------------------------------------------------
 	// toggleMute
 	// -------------------------------------------------------------------------
 	describe('toggleMute', () => {

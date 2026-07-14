@@ -152,17 +152,6 @@ export class AudioManager {
 		}
 	}
 
-	// Optional: Method to apply pitch variation easily
-	public playSoundWithPitchVariation(
-		name: string,
-		minRate = 0.9,
-		maxRate = 1.1,
-		baseVolume?: number
-	): number | null {
-		const rate = minRate + Math.random() * (maxRate - minRate);
-		return this.playSound(name, { rate: rate, volume: baseVolume });
-	}
-
 	public toggleMute(): void {
 		const newIsMuted = !this.isMuted;
 		Howler.mute(newIsMuted);

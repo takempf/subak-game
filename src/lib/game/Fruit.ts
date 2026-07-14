@@ -4,8 +4,6 @@ import {
 	ColliderDesc,
 	type RigidBody,
 	RigidBodyDesc,
-	type Rotation,
-	type Vector,
 	type World
 } from '@dimforge/rapier2d-compat'; // Or @dimforge/rapier3d
 
@@ -67,16 +65,6 @@ export class Fruit {
 		// Use a specific key like 'fruitInstance' to avoid potential conflicts
 		// if userData is used for other things.
 		(this.body.userData as FruitBodyUserData).fruitInstance = this;
-
-		// Optional: You might prefer attaching to the collider if you primarily
-		// work with colliders in collision events. Assumes one collider per body.
-		// const collider = body.collider(0); // Get the first collider
-		// if (collider) {
-		//   if (!collider.userData) collider.userData = {};
-		//   collider.userData.fruitInstance = this;
-		// } else {
-		//   console.warn("Could not find collider to attach Fruit instance to userData");
-		// }
 	}
 
 	isOutOfBounds(): boolean {
@@ -99,18 +87,6 @@ export class Fruit {
 		}
 
 		return false;
-	}
-
-	// Helper to get current position from the physics body
-	getPosition(): Vector {
-		// Use RAPIER.Vector2 or RAPIER.Vector3 based on your import
-		return this.body.translation();
-	}
-
-	// Helper to get current rotation from the physics body
-	getRotation(): number | Rotation {
-		// Return type depends on 2D (number) or 3D (RAPIER.Rotation)
-		return this.body.rotation();
 	}
 
 	// Method to handle cleanup when the fruit is removed
