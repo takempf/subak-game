@@ -1,24 +1,20 @@
 <script lang="ts">
 import { GAME_WIDTH, GAME_WIDTH_PX } from '../constants';
 
-// Extract the SvgComponent type
-import type BlueberrySvgComponent from '$lib/svg/blueberry.svg?component';
-type SvgComponent = typeof BlueberrySvgComponent;
+// Import all fruit manually as static asset paths
+import Blueberry from '$lib/svg/blueberry.svg?url';
+import Grape from '$lib/svg/grape.svg?url';
+import Lemon from '$lib/svg/lemon.svg?url';
+import Orange from '$lib/svg/orange.svg?url';
+import Apple from '$lib/svg/apple.svg?url';
+import Dragonfruit from '$lib/svg/dragonfruit.svg?url';
+import Pear from '$lib/svg/pear.svg?url';
+import Peach from '$lib/svg/peach.svg?url';
+import Pineapple from '$lib/svg/pineapple.svg?url';
+import Honeydew from '$lib/svg/honeydew.svg?url';
+import Watermelon from '$lib/svg/watermelon.svg?url';
 
-// Import all fruit manually
-import Blueberry from '$lib/svg/blueberry.svg?component';
-import Grape from '$lib/svg/grape.svg?component';
-import Lemon from '$lib/svg/lemon.svg?component';
-import Orange from '$lib/svg/orange.svg?component';
-import Apple from '$lib/svg/apple.svg?component';
-import Dragonfruit from '$lib/svg/dragonfruit.svg?component';
-import Pear from '$lib/svg/pear.svg?component';
-import Peach from '$lib/svg/peach.svg?component';
-import Pineapple from '$lib/svg/pineapple.svg?component';
-import Honeydew from '$lib/svg/honeydew.svg?component';
-import Watermelon from '$lib/svg/watermelon.svg?component';
-
-const fruitSvgs: Record<string, SvgComponent> = {
+const fruitSvgs: Record<string, string> = {
 	Blueberry,
 	Grape,
 	Lemon,
@@ -51,9 +47,8 @@ const width = $derived.by(() => {
 });
 const FruitComponent = $derived.by(() => {
 	const fruitKey = `${name.at(0).toUpperCase()}${name.slice(1)}`;
-	// Handle the case where a fruit SVG might not be found to prevent runtime errors.
-	if (!fruitKey) return null;
-	return fruitSvgs[fruitKey];
+	if (!fruitKey) return '';
+	return fruitSvgs[fruitKey] || '';
 });
 </script>
 
@@ -64,7 +59,9 @@ const FruitComponent = $derived.by(() => {
   style:width
   style:display={display === "inline" ? "inline-block" : display}
 >
-  {#if FruitComponent}<FruitComponent style="display: block" {name} />{/if}
+  {#if FruitComponent}
+    <img src={FruitComponent} alt={name} style="display: block; width: 100%; height: 100%;" />
+  {/if}
 </div>
 
 <style>

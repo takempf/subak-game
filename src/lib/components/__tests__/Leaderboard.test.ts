@@ -83,7 +83,10 @@ describe('Leaderboard component', () => {
 		});
 
 		await waitFor(() => {
-			expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/leaderboard'));
+			expect(mockFetch).toHaveBeenCalledWith(
+				expect.stringContaining('/api/leaderboard'),
+				expect.any(Object)
+			);
 		});
 
 		await waitFor(() => {

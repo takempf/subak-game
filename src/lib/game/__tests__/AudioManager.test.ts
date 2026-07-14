@@ -109,13 +109,13 @@ describe('AudioManager', () => {
 	// -------------------------------------------------------------------------
 	describe('isAudioContextReady', () => {
 		it('returns true when Howler context is running', () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			expect(manager.isAudioContextReady).toBe(true);
 		});
 
 		it('returns false when Howler context is suspended', () => {
 			(Howler as unknown as { ctx: { state: string } }).ctx.state = 'suspended';
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			expect(manager.isAudioContextReady).toBe(false);
 		});
 	});
@@ -125,7 +125,7 @@ describe('AudioManager', () => {
 	// -------------------------------------------------------------------------
 	describe('loadSound', () => {
 		it('resolves once Howl fires onload', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			const p = manager.loadSound('test', '/sounds/test.wav');
 			await flushHowl();
 			await expect(p).resolves.toBeUndefined();
@@ -133,7 +133,7 @@ describe('AudioManager', () => {
 
 		it('skips creating a second Howl instance for an already-loaded name', async () => {
 			const { Howl } = await import('howler');
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			const countAfterConstructor = vi.mocked(Howl).mock.calls.length;
 			await manager.loadSound('bump', '/sounds/bump.wav');
@@ -141,7 +141,7 @@ describe('AudioManager', () => {
 		});
 
 		it('stores a custom cooldown on the Howl instance when specified', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			const p = manager.loadSound('sfx', '/sounds/sfx.wav', {}, 200);
 			await flushHowl();
 			await p;
@@ -155,20 +155,20 @@ describe('AudioManager', () => {
 	// -------------------------------------------------------------------------
 	describe('playSound', () => {
 		it('returns null for an unknown sound name', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			expect(manager.playSound('nonexistent')).toBeNull();
 		});
 
 		it('returns null when audio context is not ready', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			(Howler as unknown as { ctx: { state: string } }).ctx.state = 'suspended';
 			expect(manager.playSound('pop')).toBeNull();
 		});
 
 		it('calls Howl.play() and returns a sound id', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			const id = manager.playSound('pop');
 			expect(getInstance(POP_IDX).play).toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe('AudioManager', () => {
 		});
 
 		it('applies volume and rate play options', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			manager.playSound('pop', { volume: 0.5, rate: 1.2 });
 			expect(getInstance(POP_IDX).volume).toHaveBeenCalledWith(0.5, 1);
@@ -187,7 +187,7 @@ describe('AudioManager', () => {
 			let now = 1000;
 			vi.spyOn(window.performance, 'now').mockImplementation(() => now);
 
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 
 			// bump (index 0) has a 50ms cooldown set by the constructor
@@ -204,7 +204,7 @@ describe('AudioManager', () => {
 		});
 
 		it('plays on consecutive calls when no cooldown is set', async () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			await flushHowl();
 			// pop has no cooldown — both calls must go through
 			manager.playSound('pop');
@@ -214,25 +214,11 @@ describe('AudioManager', () => {
 	});
 
 	// -------------------------------------------------------------------------
-	// playSoundWithPitchVariation
-	// -------------------------------------------------------------------------
-	describe('playSoundWithPitchVariation', () => {
-		it('derives rate from Math.random within [minRate, maxRate]', async () => {
-			const manager = new AudioManager({ soundsPath });
-			await flushHowl();
-			vi.spyOn(Math, 'random').mockReturnValue(0.5);
-			// rate = 0.9 + 0.5 * (1.1 - 0.9) = 1.0
-			manager.playSoundWithPitchVariation('pop', 0.9, 1.1);
-			expect(getInstance(POP_IDX).rate).toHaveBeenCalledWith(1.0, 1);
-		});
-	});
-
-	// -------------------------------------------------------------------------
 	// toggleMute
 	// -------------------------------------------------------------------------
 	describe('toggleMute', () => {
 		it('mutes when currently unmuted', () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			expect(manager.isMuted).toBe(false);
 			manager.toggleMute();
 			expect((Howler as unknown as { mute: ReturnType<typeof vi.fn> }).mute).toHaveBeenCalledWith(
@@ -243,7 +229,7 @@ describe('AudioManager', () => {
 
 		it('unmutes when currently muted', () => {
 			(Howler as unknown as { _muted: boolean })._muted = true;
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			manager.toggleMute();
 			expect((Howler as unknown as { mute: ReturnType<typeof vi.fn> }).mute).toHaveBeenCalledWith(
 				false
@@ -252,7 +238,7 @@ describe('AudioManager', () => {
 		});
 
 		it('toggles state correctly across multiple calls', () => {
-			const manager = new AudioManager({ soundsPath });
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
 			manager.toggleMute();
 			manager.toggleMute();
 			expect(manager.isMuted).toBe(false);

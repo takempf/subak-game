@@ -22,21 +22,40 @@ export class LeaderboardClient {
 	dailyScores: LeaderboardScore[] = $state([]);
 	dailyScoresStatus: AsyncStatus = $state('idle');
 
+	private parseScores(scores: GlobalScoreResponse[]): LeaderboardScore[] {
+		return scores.map((s: GlobalScoreResponse) => ({
+			id: s.id,
+			score: s.score,
+			username: s.username,
+			date: new Date(s.created_at)
+		}));
+	}
+
+	private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 8000);
+		try {
+			return await fetch(url, {
+				...options,
+				signal: controller.signal
+			});
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	}
+
 	async fetchDailyScores(): Promise<void> {
 		if (this.dailyScoresStatus === 'loading') return;
 
 		this.dailyScoresStatus = 'loading';
 		try {
-			const res = await fetch(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard?type=daily`);
+			const res = await this.fetchWithTimeout(
+				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard?type=daily`
+			);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 			const data = await res.json();
-			this.dailyScores = data.scores.map((s: GlobalScoreResponse) => ({
-				id: s.id,
-				score: s.score,
-				username: s.username,
-				date: new Date(s.created_at)
-			}));
+			this.dailyScores = this.parseScores(data.scores);
 			this.dailyScoresStatus = 'success';
 		} catch (err) {
 			console.error('Failed to fetch daily scores', err);
@@ -53,16 +72,13 @@ export class LeaderboardClient {
 
 		this.overallScoresStatus = 'loading';
 		try {
-			const res = await fetch(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard?type=overall`);
+			const res = await this.fetchWithTimeout(
+				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard?type=overall`
+			);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 			const data = await res.json();
-			this.overallScores = data.scores.map((s: GlobalScoreResponse) => ({
-				id: s.id,
-				score: s.score,
-				username: s.username,
-				date: new Date(s.created_at)
-			}));
+			this.overallScores = this.parseScores(data.scores);
 			this.overallScoresStatus = 'success';
 		} catch (err) {
 			console.error('Failed to fetch overall scores', err);
@@ -75,9 +91,12 @@ export class LeaderboardClient {
 
 	async startSession(): Promise<void> {
 		try {
-			const res = await fetch(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/start`, {
-				method: 'POST'
-			});
+			const res = await this.fetchWithTimeout(
+				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/start`,
+				{
+					method: 'POST'
+				}
+			);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 			const data = await res.json();
@@ -116,11 +135,14 @@ export class LeaderboardClient {
 	): Promise<{ success: boolean; error?: string }> {
 		this.submissionStatus = 'submitting';
 		try {
-			const res = await fetch(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/submit`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload)
-			});
+			const res = await this.fetchWithTimeout(
+				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/submit`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				}
+			);
 
 			const data = await res.json();
 
@@ -131,12 +153,7 @@ export class LeaderboardClient {
 				this.submittedRank = data.rank ?? null;
 
 				if (data.scores) {
-					this.dailyScores = data.scores.map((s: GlobalScoreResponse) => ({
-						id: s.id,
-						score: s.score,
-						username: s.username,
-						date: new Date(s.created_at)
-					}));
+					this.dailyScores = this.parseScores(data.scores);
 					this.dailyScoresStatus = 'success';
 				}
 			} else {
@@ -156,11 +173,14 @@ export class LeaderboardClient {
 		if (!this.editToken || !this.submittedId) return;
 
 		try {
-			const res = await fetch(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/update-username`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ editToken: this.editToken, username })
-			});
+			const res = await this.fetchWithTimeout(
+				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/update-username`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ editToken: this.editToken, username })
+				}
+			);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 			const id = this.submittedId;

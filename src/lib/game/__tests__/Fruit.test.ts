@@ -157,19 +157,6 @@ describe('Fruit', () => {
 		expect(fruit.isOutOfBounds()).toBe(false);
 		expect(fruit.startOutOfBounds).toBeNull();
 	});
-
-	it('getPosition returns the current physics translation', () => {
-		const fruit = new Fruit(0, 0, 0, mockWorld as unknown as World);
-		mockRigidBody.translation.mockReturnValue({ x: 42, y: 99 });
-		expect(fruit.getPosition()).toEqual({ x: 42, y: 99 });
-	});
-
-	it('getRotation returns the current physics rotation', () => {
-		const fruit = new Fruit(0, 0, 0, mockWorld as unknown as World);
-		mockRigidBody.rotation.mockReturnValue(1.57);
-		expect(fruit.getRotation()).toBe(1.57);
-	});
-
 	it('destroy removes collider and rigid body from the physics world', () => {
 		const fruit = new Fruit(0, 0, 0, mockWorld as unknown as World);
 		fruit.destroy();

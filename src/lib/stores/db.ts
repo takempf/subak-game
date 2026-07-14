@@ -1,12 +1,18 @@
 import Dexie, { type Table } from 'dexie';
 
-const db = new Dexie('FruitMergerDB') as Dexie & { scores: Table<unknown, number> };
+interface ScoreRecord {
+	id?: number;
+	score: number;
+	date: Date;
+}
+
+const db = new Dexie('FruitMergerDB') as Dexie & { scores: Table<ScoreRecord, number> };
 
 db.version(1).stores({
 	scores: '++id, score, date'
 });
 
-export const saveScore = async (score) => {
+export const saveScore = async (score: number): Promise<void> => {
 	try {
 		await db.scores.add({
 			score,
@@ -17,7 +23,7 @@ export const saveScore = async (score) => {
 	}
 };
 
-export const getHighScores = async () => {
+export const getHighScores = async (): Promise<ScoreRecord[]> => {
 	try {
 		return await db.scores.orderBy('score').reverse().limit(10).toArray();
 	} catch (error) {

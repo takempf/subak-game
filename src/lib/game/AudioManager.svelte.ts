@@ -17,18 +17,22 @@ interface PlayOptions {
 
 interface AudioManagerProps {
 	soundsPath?: string;
+	poolSize?: number;
 }
 
 export class AudioManager {
-	private sounds: Record<string, Howl> = {};
+	private soundPools: Record<string, Howl[]> = {};
+	private poolIndices: Record<string, number> = {};
 	private soundCooldowns: Record<string, number> = {}; // Tracks last play time
+	private poolSize: number;
 	isMuted: boolean = $state((Howler as unknown as { _muted: boolean })?._muted ?? false);
 
 	get isAudioContextReady() {
 		return Howler.ctx?.state === 'running';
 	}
 
-	constructor({ soundsPath }: AudioManagerProps) {
+	constructor({ soundsPath, poolSize = 6 }: AudioManagerProps) {
+		this.poolSize = poolSize;
 		this.loadSound(
 			'bump',
 			`${soundsPath}/bump.wav`,
@@ -61,37 +65,40 @@ export class AudioManager {
 		config?: SoundConfig,
 		specificCooldownMs?: number
 	): Promise<void> {
-		return new Promise((resolve, reject) => {
-			if (this.sounds[name]) {
-				console.warn(`Sound "${name}" already loaded.`);
-				resolve();
-				return;
-			}
+		if (this.soundPools[name]) {
+			console.warn(`Sound "${name}" already loaded.`);
+			return Promise.resolve();
+		}
 
-			const sound = new Howl({
-				src: [path],
-				volume: config?.volume ?? 1.0,
-				loop: config?.loop ?? false,
-				preload: config?.preload ?? true,
-				onload: () => {
-					this.sounds[name] = sound;
-					// Initialize cooldown tracking for this sound
-					this.soundCooldowns[name] = 0;
-					// Store specific cooldown if provided
-					if (specificCooldownMs !== undefined) {
-						// Use a convention, e.g., store cooldown on the Howl object
-						// (be mindful this isn't a standard Howler property)
-						(sound as typeof sound & { _customCooldown?: number })._customCooldown =
-							specificCooldownMs;
+		this.soundPools[name] = [];
+		this.poolIndices[name] = 0;
+		this.soundCooldowns[name] = 0;
+
+		const promises = Array.from({ length: this.poolSize }).map((_, i) => {
+			return new Promise<void>((resolve, reject) => {
+				const sound = new Howl({
+					src: [path],
+					volume: config?.volume ?? 1.0,
+					loop: config?.loop ?? false,
+					preload: config?.preload ?? true,
+					onload: () => {
+						this.soundPools[name].push(sound);
+						// Store specific cooldown if provided
+						if (specificCooldownMs !== undefined) {
+							(sound as typeof sound & { _customCooldown?: number })._customCooldown =
+								specificCooldownMs;
+						}
+						resolve();
+					},
+					onloaderror: (_id, error) => {
+						console.error(`Failed to load sound "${name}" instance ${i} from ${path}:`, error);
+						reject(error);
 					}
-					resolve();
-				},
-				onloaderror: (_id, error) => {
-					console.error(`Failed to load sound "${name}" from ${path}:`, error);
-					reject(error);
-				}
+				});
 			});
 		});
+
+		return Promise.all(promises).then(() => {});
 	}
 
 	/**
@@ -101,9 +108,9 @@ export class AudioManager {
 	 * @returns The sound ID if played, or null if on cooldown or not found/ready.
 	 */
 	public playSound(name: string, options?: PlayOptions): number | null {
-		const sound = this.sounds[name];
+		const pool = this.soundPools[name];
 
-		if (!sound) {
+		if (!pool || pool.length === 0) {
 			console.warn(`Sound "${name}" not found or not loaded yet.`);
 			return null;
 		}
@@ -123,10 +130,16 @@ export class AudioManager {
 
 		const now = performance.now();
 		const lastPlayTime = this.soundCooldowns[name] ?? 0;
-		const cooldown = (sound as typeof sound & { _customCooldown?: number })._customCooldown;
+		const firstSound = pool[0];
+		const cooldown = (firstSound as typeof firstSound & { _customCooldown?: number })
+			._customCooldown;
 
 		if (typeof cooldown === 'undefined' || now - lastPlayTime > cooldown) {
 			try {
+				const index = this.poolIndices[name];
+				const sound = pool[index];
+				this.poolIndices[name] = (index + 1) % pool.length;
+
 				const soundId = sound.play();
 
 				// Apply options if provided
@@ -137,7 +150,6 @@ export class AudioManager {
 					if (options.rate !== undefined) {
 						sound.rate(options.rate, soundId);
 					}
-					// Reset to default volume/rate after play if needed, or manage instances
 				}
 
 				this.soundCooldowns[name] = now; // Update last play time
@@ -150,17 +162,6 @@ export class AudioManager {
 			// Sound is on cooldown
 			return null;
 		}
-	}
-
-	// Optional: Method to apply pitch variation easily
-	public playSoundWithPitchVariation(
-		name: string,
-		minRate = 0.9,
-		maxRate = 1.1,
-		baseVolume?: number
-	): number | null {
-		const rate = minRate + Math.random() * (maxRate - minRate);
-		return this.playSound(name, { rate: rate, volume: baseVolume });
 	}
 
 	public toggleMute(): void {
