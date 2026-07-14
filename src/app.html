@@ -54,6 +54,16 @@
 		<meta name="theme-color" content="#4CAF50" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 
+		<!-- PWA manifest -->
+		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
+
+		<!-- iOS: manifest install is not supported; these drive Add to Home Screen -->
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-title" content="Subak" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
+
 		<!-- Fonts -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

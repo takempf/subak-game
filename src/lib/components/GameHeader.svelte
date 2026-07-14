@@ -5,6 +5,7 @@ import SoundOff from '../icons/sound-off.svelte';
 import IntroductionModal from './IntroductionModal.svelte';
 import Fruit from './Fruit.svelte';
 import type { GameState } from '$lib/stores/game.svelte';
+import { installPrompt } from '../stores/install.svelte.js';
 
 interface GameHeaderProps {
 	gameState: GameState;
@@ -35,6 +36,9 @@ function handleMuteClick() {
       Subak Game <Fruit name="watermelon" radius="1em" />
     </div>
     <button onclick={handleIntroductionClick}>About</button>
+    {#if installPrompt.available}
+      <button onclick={() => installPrompt.promptInstall()}>📲 Install App</button>
+    {/if}
   </div>
   <div class="trailing">
     <button onclick={handleMuteClick} aria-label="Toggle Sound">
