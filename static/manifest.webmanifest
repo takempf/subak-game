@@ -1,0 +1,38 @@
+{
+	"name": "Subak Game 🍉",
+	"short_name": "Subak",
+	"description": "An addictive physics-based fruit merging puzzle game. Merge fruits, watch them grow, and chase a high score before the box overflows.",
+	"start_url": ".",
+	"scope": ".",
+	"id": ".",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#6239ab",
+	"theme_color": "#4CAF50",
+	"categories": ["games", "entertainment"],
+	"icons": [
+		{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{
+			"src": "./icons/icon-maskable-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "./icons/icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "./images/subak-game-screenshot.png",
+			"sizes": "1400x1774",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Merging fruits in Subak Game"
+		}
+	]
+}
