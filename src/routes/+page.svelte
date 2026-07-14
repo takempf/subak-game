@@ -2,6 +2,9 @@
 import { browser } from '$app/environment';
 import TKIcon from '../lib/icons/tk.svelte';
 import Game from '../lib/components/Game.svelte';
+// Eagerly evaluate the install store at app entry so its `beforeinstallprompt`
+// listener is registered before the event can fire (it is one-shot and early).
+import '../lib/stores/install.svelte.js';
 
 if (browser) {
 	(async () => {
