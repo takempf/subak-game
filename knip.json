@@ -1,4 +1,6 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
-	"ignore": ["dist/**", "docs/**", "**/*.test.*"]
+	"entry": ["src/routes/++(page).svelte", "src/lib/index.ts"],
+	"ignore": ["dist/**", "docs/**", "**/*.test.*"],
+	"ignoreDependencies": ["@vitest/coverage-v8", "globals", "playwright"]
 }
