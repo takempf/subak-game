@@ -25,7 +25,12 @@ const PITCH_VARIATION_MIN = 0.9;
 const PITCH_VARIATION_MAX = 1.1;
 // Drop pitch rates: C major scale ~1.5 octaves (E4→B2), smallest fruit = highest pitch.
 // Notes: E4, D4, C4, B3, A3, G3, F3, E3, D3, C3, B2. Each rate = 2^(semitones/12).
-const DROP_PITCH_RATES = [1.2599, 1.1225, 1.0, 0.9439, 0.8409, 0.7492, 0.6674, 0.6300, 0.5612, 0.5, 0.4729];
+const DROP_PITCH_RATES = [
+	1.2599, 1.1225, 1.0, 0.9439, 0.8409, 0.7492, 0.6674, 0.63, 0.5612, 0.5, 0.4729
+];
+// Bonus awarded when two watermelons (the largest fruit) merge and vanish
+const WATERMELON_MERGE_POINTS = 100;
+const MERGE_EFFECT_DURATION_MS = 1000;
 
 // Helper function (as defined above)
 function mapRange(
@@ -71,6 +76,7 @@ export class GameState {
 	nextFruitIndex: number = $state(0);
 	fruits: Fruit[] = [];
 	fruitsState: FruitState[] = $state([]);
+	fruitsStateById: Map<number, FruitState> = new Map();
 	dropCount: number = $state(0);
 	mergeEffects: MergeEffectData[] = $state([]);
 
@@ -89,8 +95,6 @@ export class GameState {
 	physicsWorld: World | null = null;
 	eventQueue: EventQueue | null = null;
 	colliderMap: Map<number, Fruit | Boundary> = new Map();
-
-	lastBumpSoundTime: DOMHighResTimeStamp = 0;
 
 	// Configuration
 	imagesPath: string = DEFAULT_IMAGES_PATH;
@@ -165,39 +169,41 @@ export class GameState {
 		const currentTime = performance.now();
 		const physicsStepMs = this.physicsWorld.integrationParameters.dt * 1000;
 
-		this.physicsAccumulator += currentTime - (this.lastTime || 0);
+		let steppedThisFrame = false;
+		// Clamp the per-frame delta (e.g. Math.min(delta, 100) ms) to prevent catch-up burst
+		const delta = Math.min(currentTime - (this.lastTime ?? currentTime), 100);
+		this.physicsAccumulator += delta;
+		this.lastTime = currentTime;
+
 		while (this.physicsAccumulator >= physicsStepMs) {
 			this.physicsAccumulator -= physicsStepMs;
 			this.physicsWorld.step(this.eventQueue);
 			this.checkCollisions();
+			steppedThisFrame = true;
 		}
 
-		this.lastTime = currentTime;
+		// Only update rendering state on frames where at least one physics step ran
+		if (steppedThisFrame) {
+			for (const fruit of this.fruits) {
+				if (!fruit.body.isValid()) continue;
+				if (fruit.body.isSleeping()) continue;
 
-		// --- Step 3: Update Rendering State and Effects (mostly unchanged) ---
-		const updatedFruitStates: FruitState[] = this.fruits
-			.map((fruit) => {
-				if (!fruit.body.isValid()) return null;
-				return {
-					id: fruit.id, // Add this line
-					x: fruit.body.translation().x,
-					y: fruit.body.translation().y,
-					rotation: fruit.body.rotation(),
-					fruitIndex: fruit.fruitIndex
-				};
-			})
-			.filter((state): state is FruitState => state !== null);
-		this.setFruitsState(updatedFruitStates);
+				const state = this.fruitsStateById.get(fruit.id);
+				if (state) {
+					const position = fruit.body.translation();
+					state.x = position.x;
+					state.y = position.y;
+					state.rotation = fruit.body.rotation();
+				}
+			}
+		}
 
-		const newMergeEffects = this.mergeEffects
-			.map((effect: MergeEffectData) => {
-				const progress = (currentTime - effect.startTime) / effect.duration;
-
-				if (progress >= 1) return null;
-				return effect;
-			})
-			.filter((effect): effect is MergeEffectData => effect !== null);
-		this.setMergeEffects(newMergeEffects);
+		const newMergeEffects = this.mergeEffects.filter(
+			(effect) => currentTime - effect.startTime < effect.duration
+		);
+		if (newMergeEffects.length !== this.mergeEffects.length) {
+			this.mergeEffects = newMergeEffects;
+		}
 	}
 
 	checkCollisions() {
@@ -205,7 +211,6 @@ export class GameState {
 			return;
 		}
 
-		const currentTime = performance.now();
 		const mergePairs: { fruitA: Fruit; fruitB: Fruit }[] = [];
 		const mergedHandlesThisStep = new Set<number>(); // Track handles involved in a merge *this step*
 
@@ -245,8 +250,6 @@ export class GameState {
 
 					// --- Determine Volume and Play Sound ---
 					if (relVelMag >= MIN_VELOCITY_FOR_SOUND) {
-						// Check global time-based cooldown first
-
 						// Map velocity to volume
 						const volume = mapRange(
 							relVelMag,
@@ -270,11 +273,7 @@ export class GameState {
 							: rate;
 
 						// Play the sound using AudioManager
-
 						this.audioManager.playSound('bump', { volume, rate: bumpRate });
-
-						// Update the last play time
-						this.lastBumpSoundTime = currentTime;
 					}
 				}
 			}
@@ -315,7 +314,6 @@ export class GameState {
 		// --- Step 2: Process Queued Merges ---
 		if (mergePairs.length > 0) {
 			mergePairs.forEach(({ fruitA, fruitB }) => {
-				// mergeFruits will handle validity checks internally now
 				this.mergeFruits(fruitA, fruitB);
 			});
 		}
@@ -353,7 +351,6 @@ export class GameState {
 			return;
 		}
 
-		// --- Rest of the merge logic is similar, using bodyAData/bodyBData ---
 		const posA = fruitA.body.translation();
 		const posB = fruitB.body.translation();
 		const midpoint = {
@@ -361,50 +358,52 @@ export class GameState {
 			y: (posA.y + posB.y) / 2
 		};
 
-		const nextIndex = fruitA.fruitIndex === FRUITS.length - 1 ? 0 : fruitA.fruitIndex + 1;
+		// Two watermelons (the largest fruit) merge into nothing for a flat bonus
+		const isWatermelonMerge = fruitA.fruitIndex === FRUITS.length - 1;
+		const nextIndex = fruitA.fruitIndex + 1;
 		const nextFruitType = FRUITS[nextIndex];
-		if (!nextFruitType) {
+		if (!isWatermelonMerge && !nextFruitType) {
 			console.error(`Invalid next fruit index during merge: ${nextIndex}`);
 			return;
 		}
-		const newFruitRadius = nextFruitType.radius;
 
-		// 1. Remove the old bodies from the physics world *first*
-		fruitA.destroy();
-		fruitB.destroy();
+		// Remove the old fruits from the physics world and all bookkeeping *first*
+		this.removeFruit(fruitA);
+		this.removeFruit(fruitB);
 
-		// 2. Remove from collider map
-		this.colliderMap.delete(fruitA.body.handle);
-		this.colliderMap.delete(fruitB.body.handle);
-
-		// 3. Filter the local fruits array *immediately* using handles
-		this.fruits = this.fruits.filter((fruit) => {
-			return fruit !== fruitA && fruit !== fruitB;
-		});
+		const points = nextFruitType ? nextFruitType.points || 0 : WATERMELON_MERGE_POINTS;
+		const effectRadius = nextFruitType ? nextFruitType.radius : fruitA.radius;
+		const milestoneIndex = nextFruitType ? nextIndex : fruitA.fruitIndex;
 
 		// Add merge visual effect
-		const newMergeEffects = [
+		this.mergeEffects = [
 			...this.mergeEffects,
 			{
 				id: this.mergeEffectIdCounter++,
 				x: midpoint.x,
 				y: midpoint.y,
-				radius: newFruitRadius,
+				radius: effectRadius,
 				startTime: performance.now(),
-				duration: 1000
+				duration: MERGE_EFFECT_DURATION_MS
 			}
 		];
-		this.setMergeEffects(newMergeEffects);
 
-		// 4. Add the new, larger fruit (addFruit will update map and array)
-		this.addFruit(nextIndex, midpoint.x, midpoint.y);
+		// Add the new, larger fruit (addFruit will update map and array)
+		if (!isWatermelonMerge) {
+			this.addFruit(nextIndex, midpoint.x, midpoint.y);
+		}
 
-		// Track Milestone
-		const points = nextFruitType.points || 0;
-		this.telemetry.trackMilestone(points, nextIndex, this.dropCount);
+		this.telemetry.trackMilestone(points, milestoneIndex, this.dropCount);
+		this.score += points;
+	}
 
-		// Update the score
-		this.setScore(this.score + points);
+	/** Removes a fruit from the physics world and all bookkeeping (counterpart to addFruit) */
+	private removeFruit(fruit: Fruit): void {
+		fruit.destroy();
+		this.colliderMap.delete(fruit.collider.handle);
+		this.fruits = this.fruits.filter((f) => f !== fruit);
+		this.fruitsState = this.fruitsState.filter((f) => f.id !== fruit.id);
+		this.fruitsStateById.delete(fruit.id);
 	}
 
 	addFruit(fruitIndex: number, x: number, y: number): Fruit | undefined {
@@ -424,14 +423,26 @@ export class GameState {
 		this.fruits = [...this.fruits, fruit];
 
 		this.colliderMap.set(fruit.collider.handle, fruit);
+
+		// Synchronize fruitsState immediately!
+		const position = fruit.body.translation();
+		this.fruitsState.push({
+			id: fruit.id,
+			x: position.x,
+			y: position.y,
+			rotation: fruit.body.rotation(),
+			fruitIndex: fruit.fruitIndex
+		});
+		this.fruitsStateById.set(fruit.id, this.fruitsState[this.fruitsState.length - 1]);
+
 		return fruit;
 	}
 
 	dropFruit(fruitIndex: number, x: number, y: number): void {
 		this.addFruit(fruitIndex, x, y);
-		this.setCurrentFruitIndex(this.nextFruitIndex);
-		this.setNextFruitIndex(this.getRandomFruitIndex());
-		this.setDropCount(this.dropCount + 1);
+		this.currentFruitIndex = this.nextFruitIndex;
+		this.nextFruitIndex = this.getRandomFruitIndex();
+		this.dropCount += 1;
 	}
 
 	checkGameOver(): void {
@@ -451,11 +462,14 @@ export class GameState {
 		if (this.physicsWorld) {
 			this.fruits.forEach((fruit) => {
 				fruit.destroy();
+				this.colliderMap.delete(fruit.collider.handle);
 			});
 		}
 
 		// Clear internal state
 		this.fruits = [];
+		this.fruitsState = [];
+		this.fruitsStateById.clear();
 		this.lastTime = null;
 		this.mergeEffectIdCounter = 0;
 		this.dropCount = 0;
@@ -464,13 +478,12 @@ export class GameState {
 
 		this.gameOverFruitId = null;
 
-		// Reset Svelte stores
-		this.setFruitsState([]);
-		this.setMergeEffects([]);
-		this.setScore(0);
-		this.setStatus('uninitialized'); // Set to uninitialized, GameHeader will transition to playing
-		this.setCurrentFruitIndex(this.getRandomFruitIndex());
-		this.setNextFruitIndex(this.getRandomFruitIndex());
+		// Reset Svelte fields directly
+		this.mergeEffects = [];
+		this.score = 0;
+		this.status = 'uninitialized'; // Set to uninitialized, GameHeader will transition to playing
+		this.currentFruitIndex = this.getRandomFruitIndex();
+		this.nextFruitIndex = this.getRandomFruitIndex();
 	}
 
 	restartGame(): void {
@@ -490,10 +503,6 @@ export class GameState {
 
 	getRandomFruitIndex(limit: number = 5) {
 		return Math.floor(Math.random() * limit);
-	}
-
-	setScore(newScore: number) {
-		this.score = newScore;
 	}
 
 	setStatus(newStatus: GameStatus) {
@@ -516,33 +525,19 @@ export class GameState {
 		}
 	}
 
-	setCurrentFruitIndex(newCurrentFruitIndex: number) {
-		this.currentFruitIndex = newCurrentFruitIndex;
-	}
-
-	setNextFruitIndex(newNextFruitIndex: number) {
-		this.nextFruitIndex = newNextFruitIndex;
-	}
-
-	setFruitsState(newFruits: FruitState[]) {
-		this.fruitsState = newFruits;
-	}
-
-	setDropCount(newDropCount: number) {
-		this.dropCount = newDropCount;
-	}
-
-	setMergeEffects(newMergeEffects: MergeEffectData[]) {
-		this.mergeEffects = newMergeEffects;
-	}
-
 	destroy() {
-		console.log('destroy Game State');
-		this.setStatus('gameover'); // Ensure loop stops and cleanup occurs
+		this.status = 'gameover'; // Ensure loop stops and cleanup occurs
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
-		// Any other cleanup specific to destroying the game instance
+		this.eventQueue?.free();
+		this.physicsWorld?.free();
+		this.eventQueue = null;
+		this.physicsWorld = null;
+		this.colliderMap.clear();
+		this.fruits = [];
+		this.fruitsState = [];
+		this.fruitsStateById.clear();
 	}
 }

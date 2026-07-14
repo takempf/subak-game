@@ -69,11 +69,23 @@ describe('GameState Methods', () => {
 		expect(state.score).toBe(FRUITS[1].points);
 	});
 
+	it('merges two watermelons (final fruit) and awards the watermelon bonus', () => {
+		const state = new GameState({});
+		state.physicsWorld = {} as any;
+		const maxIndex = FRUITS.length - 1;
+		const a = state.addFruit(maxIndex, 0.2, 0.2);
+		const b = state.addFruit(maxIndex, 0.25, 0.2);
+		const initialCount = state.fruits.length;
+		state.mergeFruits(a!, b!);
+		expect(state.fruits.length).toBe(initialCount - 2);
+		expect(state.score).toBe(100);
+	});
+
 	it('drops a fruit correctly', () => {
 		const state = new GameState({});
 		state.physicsWorld = {} as any;
 		state.setStatus('playing');
-		state.setNextFruitIndex(2);
+		state.nextFruitIndex = 2;
 
 		state.dropFruit(1, 100, 100);
 
@@ -123,7 +135,7 @@ describe('GameState Methods', () => {
 	it('resets game state correctly', () => {
 		const state = new GameState({});
 		state.physicsWorld = {} as any;
-		state.fruits = [{ destroy: vi.fn() }] as any;
+		state.fruits = [{ destroy: vi.fn(), collider: { handle: 1 } }] as any;
 		state.score = 100;
 		state.dropCount = 5;
 		state.telemetry = { reset: vi.fn() } as any;
@@ -141,7 +153,7 @@ describe('GameState Methods', () => {
 		const state = new GameState({});
 		state.physicsWorld = {} as any;
 		(state as any).gameOverFruitId = 42;
-		state.fruits = [{ destroy: vi.fn() }] as any;
+		state.fruits = [{ destroy: vi.fn(), collider: { handle: 1 } }] as any;
 		state.telemetry = { reset: vi.fn() } as any;
 		state.leaderboard = { reset: vi.fn() } as any;
 
