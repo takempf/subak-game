@@ -6,7 +6,15 @@ let {
 	y = 0, // meters
 	rotation = 0,
 	scale = 1,
+	zIndex = undefined,
 	children
+}: {
+	x?: number;
+	y?: number;
+	rotation?: number;
+	scale?: number;
+	zIndex?: number;
+	children: import('svelte').Snippet;
 } = $props();
 
 const scaledGameWidthPx = $derived(scale * GAME_WIDTH_PX);
@@ -17,13 +25,13 @@ const translateY = $derived((y / GAME_WIDTH) * scaledGameWidthPx);
 <div
 	class="game-entity"
 	style:translate="calc(-50% + {translateX}px) calc(-50% + {translateY}px)"
-	style:rotate="{rotation}rad">
+	style:rotate="{rotation}rad"
+	style:z-index={zIndex}>
 	{@render children()}
 </div>
 
 <style>
 	.game-entity {
 		position: absolute;
-		will-change: translate, rotate;
 	}
 </style>
