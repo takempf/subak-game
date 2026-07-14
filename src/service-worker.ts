@@ -12,10 +12,23 @@ const CACHE_FIRST_PATHS = new Set([...build, ...files]);
 
 self.addEventListener('install', (event: ExtendableEvent): void => {
 	event.waitUntil(
-		caches
-			.open(CACHE)
-			.then((cache): Promise<void> => cache.addAll(ASSETS))
-			.then((): Promise<void> => self.skipWaiting())
+		(async (): Promise<void> => {
+			const cache = await caches.open(CACHE);
+			// Precache assets individually rather than via cache.addAll, which aborts the
+			// whole install if a single request fails (e.g. a static file the host doesn't
+			// serve). One missing asset shouldn't prevent offline support for everything else.
+			await Promise.all(
+				ASSETS.map(async (asset): Promise<void> => {
+					try {
+						const response = await fetch(asset);
+						if (response.ok) await cache.put(asset, response);
+					} catch (err) {
+						console.warn(`Failed to precache "${asset}"`, err);
+					}
+				})
+			);
+			await self.skipWaiting();
+		})()
 	);
 });
 
