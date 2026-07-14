@@ -9,6 +9,10 @@ if (browser) {
 		const token = import.meta.env.VITE_POSTHOG_TOKEN as string;
 		initializeWebAnalytics(token);
 	})();
+
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('/service-worker.js', { type: 'module' });
+	}
 }
 </script>
 

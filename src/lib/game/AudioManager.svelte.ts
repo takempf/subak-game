@@ -75,7 +75,7 @@ export class AudioManager {
 		this.soundCooldowns[name] = 0;
 
 		const promises = Array.from({ length: this.poolSize }).map((_, i) => {
-			return new Promise<void>((resolve, reject) => {
+			return new Promise<void>((resolve): void => {
 				const sound = new Howl({
 					src: [path],
 					volume: config?.volume ?? 1.0,
@@ -90,9 +90,9 @@ export class AudioManager {
 						}
 						resolve();
 					},
-					onloaderror: (_id, error) => {
+					onloaderror: (_id, error): void => {
 						console.error(`Failed to load sound "${name}" instance ${i} from ${path}:`, error);
-						reject(error);
+						resolve();
 					}
 				});
 			});

@@ -148,6 +148,27 @@ describe('AudioManager', () => {
 			// 'sfx' is the 3rd sound loaded (index 2)
 			expect(getInstance(2)._customCooldown).toBe(200);
 		});
+
+		it('resolves even when Howl fires onloaderror (non-fatal)', async () => {
+			const manager = new AudioManager({ soundsPath, poolSize: 1 });
+			const { Howl } = await import('howler');
+			const originalHowl = vi.mocked(Howl);
+			originalHowl.mockImplementationOnce(((config: {
+				onloaderror?: (id: number, err: unknown) => void;
+			}) => {
+				if (config.onloaderror) {
+					pendingOnloads.push((): void => {
+						config.onloaderror?.(1, 'mocked error');
+					});
+				}
+				return howlInstances[howlConstructionCount++];
+			}) as unknown as (options: import('howler').HowlOptions) => import('howler').Howl);
+
+			const p = manager.loadSound('error-sound', '/sounds/error.wav');
+			await flushHowl();
+			await expect(p).resolves.toBeUndefined();
+			expect(manager.playSound('error-sound')).toBeNull();
+		});
 	});
 
 	// -------------------------------------------------------------------------

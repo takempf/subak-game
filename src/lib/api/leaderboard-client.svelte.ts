@@ -1,4 +1,7 @@
 import { env } from '$env/dynamic/public';
+import { queueSubmission, getPendingSubmissions, deletePendingSubmission } from '../stores/db';
+import { connectivity } from '../stores/connectivity.svelte';
+import { calculateValidationHash } from './validation';
 
 interface GlobalScoreResponse {
 	id: number;
@@ -15,25 +18,47 @@ export interface LeaderboardScore {
 }
 
 type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
-type SubmissionStatus = 'idle' | 'submitting' | 'success' | 'error';
+type SubmissionStatus = 'idle' | 'submitting' | 'success' | 'error' | 'queued';
+
+function getStoredInitials(): string {
+	return typeof window !== 'undefined' ? window.localStorage.getItem('subak_initials') || '' : '';
+}
 
 export class LeaderboardClient {
 	// --- Daily Scores ---
 	dailyScores: LeaderboardScore[] = $state([]);
 	dailyScoresStatus: AsyncStatus = $state('idle');
 
+	private unsubscribeOnline: (() => void) | null = null;
+
+	constructor() {
+		if (typeof window !== 'undefined') {
+			this.flushPendingSubmissions();
+			this.unsubscribeOnline = connectivity.onOnline((): void => {
+				this.flushPendingSubmissions();
+			});
+		}
+	}
+
+	destroy(): void {
+		this.unsubscribeOnline?.();
+		this.unsubscribeOnline = null;
+	}
+
 	private parseScores(scores: GlobalScoreResponse[]): LeaderboardScore[] {
-		return scores.map((s: GlobalScoreResponse) => ({
-			id: s.id,
-			score: s.score,
-			username: s.username,
-			date: new Date(s.created_at)
-		}));
+		return scores.map(
+			(s: GlobalScoreResponse): LeaderboardScore => ({
+				id: s.id,
+				score: s.score,
+				username: s.username,
+				date: new Date(s.created_at)
+			})
+		);
 	}
 
 	private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
 		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 8000);
+		const timeoutId = setTimeout((): void => controller.abort(), 8000);
 		try {
 			return await fetch(url, {
 				...options,
@@ -114,10 +139,15 @@ export class LeaderboardClient {
 	submittedRank: number | null = $state(null);
 
 	// --- Pending Username ---
-	pendingUsername: string = $state(
-		typeof window !== 'undefined' ? window.localStorage.getItem('subak_initials') || '' : ''
-	);
+	pendingUsername: string = $state(getStoredInitials());
 	usernameSubmitted: boolean = $state(false);
+
+	setInitials(value: string): void {
+		this.pendingUsername = value.toUpperCase();
+		if (typeof window !== 'undefined') {
+			window.localStorage.setItem('subak_initials', this.pendingUsername);
+		}
+	}
 
 	async submitPendingUsername(): Promise<void> {
 		if (this.usernameSubmitted || !this.submittedId) return;
@@ -130,19 +160,20 @@ export class LeaderboardClient {
 		}
 	}
 
+	private postSubmission(payload: Record<string, unknown>): Promise<Response> {
+		return this.fetchWithTimeout(`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/submit`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+	}
+
 	async submitScore(
 		payload: Record<string, unknown>
-	): Promise<{ success: boolean; error?: string }> {
+	): Promise<{ success: boolean; error?: string; queued?: boolean }> {
 		this.submissionStatus = 'submitting';
 		try {
-			const res = await this.fetchWithTimeout(
-				`${env.PUBLIC_LEADERBOARD_URL}/api/leaderboard/submit`,
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				}
-			);
+			const res = await this.postSubmission(payload);
 
 			const data = await res.json();
 
@@ -162,9 +193,52 @@ export class LeaderboardClient {
 
 			return data;
 		} catch (err) {
-			console.error('Score submission failed', err);
-			this.submissionStatus = 'error';
-			return { success: false, error: 'Network error submitting score' };
+			console.error('Score submission failed, queueing for retry', err);
+			await queueSubmission(payload);
+			this.submissionStatus = 'queued';
+			return { success: false, queued: true };
+		}
+	}
+
+	private flushPromise: Promise<void> | null = null;
+
+	flushPendingSubmissions(): Promise<void> {
+		this.flushPromise ??= this.doFlushPendingSubmissions().finally((): void => {
+			this.flushPromise = null;
+		});
+		return this.flushPromise;
+	}
+
+	private async doFlushPendingSubmissions(): Promise<void> {
+		const pending = await getPendingSubmissions();
+		if (pending.length === 0) return;
+
+		const currentInitials = this.pendingUsername;
+
+		for (const item of pending) {
+			try {
+				const payload = { ...item.payload } as Record<string, unknown>;
+				if (currentInitials && payload.username !== currentInitials) {
+					payload.username = currentInitials;
+					payload.validationHash = await calculateValidationHash(
+						currentInitials,
+						payload.finalScore as number,
+						payload.sessionToken as string,
+						payload.milestones as unknown[]
+					);
+				}
+
+				const res = await this.postSubmission(payload);
+				const data = await res.json();
+				if (data.success || res.status === 400 || res.status === 422) {
+					if (item.id !== undefined) {
+						await deletePendingSubmission(item.id);
+					}
+				}
+			} catch (err) {
+				console.error('Failed to flush pending submission, stopping queue processing', err);
+				break;
+			}
 		}
 	}
 
@@ -184,7 +258,9 @@ export class LeaderboardClient {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 			const id = this.submittedId;
-			this.dailyScores = this.dailyScores.map((s) => (s.id === id ? { ...s, username } : s));
+			this.dailyScores = this.dailyScores.map(
+				(s: LeaderboardScore): LeaderboardScore => (s.id === id ? { ...s, username } : s)
+			);
 		} catch (err) {
 			console.error('Failed to update username', err);
 		}
@@ -198,8 +274,7 @@ export class LeaderboardClient {
 		this.submittedId = null;
 		this.submittedRank = null;
 		this.usernameSubmitted = false;
-		this.pendingUsername =
-			typeof window !== 'undefined' ? window.localStorage.getItem('subak_initials') || '' : '';
+		this.pendingUsername = getStoredInitials();
 		// Keep scores cached across games — they're still valid
 	}
 }

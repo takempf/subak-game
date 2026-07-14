@@ -493,11 +493,9 @@ export class GameState {
 	}
 
 	private startNewSession(): void {
-		this.leaderboard.startSession().then(() => {
+		this.leaderboard.startSession().finally((): void => {
 			const token = this.leaderboard.sessionToken;
-			if (token) {
-				this.telemetry.setSession(token);
-			}
+			this.telemetry.setSession(token);
 		});
 	}
 
@@ -527,6 +525,7 @@ export class GameState {
 
 	destroy() {
 		this.status = 'gameover'; // Ensure loop stops and cleanup occurs
+		this.leaderboard.destroy();
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;

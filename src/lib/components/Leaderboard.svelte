@@ -4,6 +4,8 @@ import { getHighScores } from '../stores/db';
 import type { LeaderboardClient, LeaderboardScore } from '../api/leaderboard-client.svelte';
 import Tabs from './Tabs.svelte';
 import Progress from './Progress.svelte';
+import InitialsInput from './InitialsInput.svelte';
+import { connectivity } from '../stores/connectivity.svelte';
 
 interface LeaderboardProps {
 	leaderboardClient?: LeaderboardClient;
@@ -17,6 +19,22 @@ let {
 }: LeaderboardProps = $props();
 
 let internalLocalScores = $state<LeaderboardScore[]>(localScores);
+
+const tabs = $derived(
+	connectivity.online
+		? [
+				{ value: 'daily', label: '🌎 Daily', content: dailyPanel },
+				{ value: 'overall', label: '🌎 Overall', content: overallPanel },
+				{ value: 'local', label: '💻 Local', content: localScoresPanel }
+			]
+		: [{ value: 'local', label: '💻 Local', content: localScoresPanel }]
+);
+
+$effect(() => {
+	if (!connectivity.online) {
+		activeTab = 'local';
+	}
+});
 
 export const fetchLocalScores = async () => {
 	try {
@@ -147,24 +165,18 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
               <td class="username">
                 {#if isSubmitted && showInput && !leaderboardClient?.usernameSubmitted}
                   {#if rank === 1}🏆
-                  {/if}<input
-                    class="initials-input"
-                    type="text"
+                  {/if}<InitialsInput
                     bind:value={
                       () => leaderboardClient?.pendingUsername ?? "",
                       (v) => {
                         if (leaderboardClient)
-                          leaderboardClient.pendingUsername = v.toUpperCase();
+                          leaderboardClient.pendingUsername = v;
                       }
                     }
-                    maxlength="3"
-                    autocomplete="off"
-                    data-1p-ignore
                     onkeydown={(e) => {
                       if (e.key === "Enter")
                         leaderboardClient?.submitPendingUsername();
                     }}
-                    placeholder="???"
                   />
                 {:else}
                   {score.username || "???"}
@@ -257,15 +269,14 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
 {/snippet}
 
 <div class="leaderboard" bind:this={leaderboardEl}>
-  <Tabs
-    bind:value={activeTab}
-    tabs={[
-      { value: "daily", label: "🌎 Daily", content: dailyPanel },
-      { value: "overall", label: "🌎 Overall", content: overallPanel },
-      { value: "local", label: "💻 Local", content: localScoresPanel },
-    ]}
-  />
-  <div class="time-disclaimer">(All times are USA/California based)</div>
+  <Tabs bind:value={activeTab} {tabs} />
+  <div class="time-disclaimer">
+    {#if !connectivity.online}
+      Offline — showing local scores
+    {:else}
+      (All times are USA/California based)
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -385,24 +396,7 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
     }
   }
 
-  .initials-input {
-    width: 3.25em;
+  .username :global(.initials-input) {
     margin-left: -0.5em;
-    padding: 0.2em 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-weight: bold;
-    font-size: 1em;
-    letter-spacing: 0.1em;
-    text-align: center;
-    border-radius: 4px;
-    border: 1px solid var(--color-border);
-    background: var(--color-background-light);
-    color: var(--color-text);
-    text-transform: uppercase;
-  }
-
-  .initials-input:focus {
-    outline: var(--color-focus-outline) 2px solid;
-    border-color: transparent;
   }
 </style>
