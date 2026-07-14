@@ -26,6 +26,7 @@ The original game, "Merge Big Watermelon" (合成大西瓜), was created by Mead
 - **Merge** — when two identical fruits collide, they fuse into the next-larger fruit and award points.
 - **Game over** when any fruit breaches the danger line at the top.
 - **Offline Support** — fully playable without network; game pages and assets (including physics WASM and audio) are cached via a service worker.
+- **Installable PWA** — can be installed as a standalone application on mobile and desktop devices, featuring a custom in-game install prompt on supported Chromium browsers and native home-screen launch support.
 - **Leaderboard** — scores are saved locally (IndexedDB) and submitted to the global leaderboard. When offline, submissions are safely queued locally and automatically flushed once connectivity is restored.
 
 ---
