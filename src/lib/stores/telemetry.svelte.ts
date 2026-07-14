@@ -31,6 +31,12 @@ export class TelemetryState {
 			return null;
 		}
 
+		// NOTE: The validation hash generated here uses PUBLIC_SHARED_CLIENT_SALT, which
+		// is compiled into the client-side bundle and is publicly discoverable.
+		// Consequently, this hash is client-forgeable by design. It serves as a light
+		// speed-bump against casual API submission tempering. Any actual security boundary
+		// or strict anti-cheat verification must be implemented server-side by checking
+		// session freshness, rate limiting, and plausibility of the milestone timeline.
 		const payloadString = `${username}:${finalScore}:${sessionToken}:${JSON.stringify(this.milestones)}:${env.PUBLIC_SHARED_CLIENT_SALT}`;
 		const encoder = new TextEncoder();
 		const dataBytes = encoder.encode(payloadString);
