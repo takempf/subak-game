@@ -78,9 +78,22 @@ onMount(() => {
 		}
 	}
 
+	// Auto-pause while the tab is hidden, and resume when it returns — but only if
+	// *we* paused it. Otherwise switching away from a deliberately-paused game (e.g.
+	// the About modal is open) would wrongly resume it on return.
+	let pausedByVisibility = false;
+
 	function handleVisibilityChange() {
-		if (document.hidden && gameState.status === 'playing') {
-			gameState.setStatus('paused');
+		if (document.hidden) {
+			if (gameState.status === 'playing') {
+				pausedByVisibility = true;
+				gameState.setStatus('paused');
+			}
+		} else if (pausedByVisibility) {
+			pausedByVisibility = false;
+			if (gameState.status === 'paused') {
+				gameState.setStatus('playing');
+			}
 		}
 	}
 

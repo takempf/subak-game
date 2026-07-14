@@ -32,6 +32,17 @@ function getBeforeUnloadHandler(addSpy: ReturnType<typeof vi.spyOn>) {
 	return call?.[1] as ((event: Partial<BeforeUnloadEvent>) => void) | undefined;
 }
 
+function getVisibilityChangeHandler(addSpy: ReturnType<typeof vi.spyOn>) {
+	const call = (addSpy.mock.calls as [string, EventListener][]).find(
+		([type]) => type === 'visibilitychange'
+	);
+	return call?.[1] as (() => void) | undefined;
+}
+
+function setHidden(hidden: boolean) {
+	Object.defineProperty(document, 'hidden', { value: hidden, configurable: true });
+}
+
 describe('Game beforeunload guard', () => {
 	it('calls preventDefault when game is in progress', () => {
 		const addSpy = vi.spyOn(window, 'addEventListener');
@@ -75,5 +86,59 @@ describe('Game beforeunload guard', () => {
 			([type]) => type === 'beforeunload'
 		);
 		expect(removeCall?.[1]).toBe(registeredHandler);
+	});
+});
+
+describe('Game tab-visibility pause/resume', () => {
+	afterEach(() => {
+		setHidden(false);
+	});
+
+	it('resumes play after the tab is hidden and shown again', () => {
+		// Track status transitions without running the real physics loop.
+		const setStatus = vi.spyOn(proto, 'setStatus').mockImplementation(function (
+			this: any,
+			status: string
+		) {
+			this.status = status;
+		});
+		const addSpy = vi.spyOn(document, 'addEventListener');
+		render(Game);
+
+		const handler = getVisibilityChangeHandler(addSpy);
+		expect(handler).toBeDefined();
+
+		// Tab hidden while playing → paused
+		setHidden(true);
+		handler?.();
+		expect(setStatus).toHaveBeenLastCalledWith('paused');
+
+		// Tab visible again → resumed to playing (not stuck in paused)
+		setHidden(false);
+		handler?.();
+		expect(setStatus).toHaveBeenLastCalledWith('playing');
+	});
+
+	it('does not resume a game that was already paused before hiding', () => {
+		// Game paused deliberately (e.g. About modal open) before switching tabs.
+		proto.init.mockImplementationOnce(async function (this: any) {
+			this.audioManager = { isMuted: false, toggleMute: vi.fn() };
+			this.status = 'paused';
+		});
+
+		const setStatus = vi.spyOn(proto, 'setStatus');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+		render(Game);
+
+		const handler = getVisibilityChangeHandler(addSpy);
+
+		// Hidden: nothing to do, we didn't pause it
+		setHidden(true);
+		handler?.();
+		// Visible again: must NOT force it back to playing
+		setHidden(false);
+		handler?.();
+
+		expect(setStatus).not.toHaveBeenCalledWith('playing');
 	});
 });
