@@ -1,12 +1,12 @@
-import { env } from '$env/dynamic/public';
 import { APP_VERSION, BUILD_HASH } from '../buildInfo';
+import { OFFLINE_SESSION_TOKEN, calculateValidationHash } from '../api/validation';
 import type { GameMilestone } from '../types/leaderboard';
 
 export class TelemetryState {
 	sessionStartTime: number | null = null;
 	milestones: GameMilestone[] = [];
 
-	setSession(_token: string): void {
+	setSession(_token: string | null): void {
 		this.sessionStartTime = performance.now();
 	}
 
@@ -24,30 +24,25 @@ export class TelemetryState {
 	async buildSubmissionPayload(
 		username: string,
 		finalScore: number,
-		sessionToken: string
+		sessionToken: string | null
 	): Promise<Record<string, unknown> | null> {
 		if (this.milestones.length === 0) {
 			console.error('Cannot build submission payload: no milestones recorded');
 			return null;
 		}
 
-		// NOTE: The validation hash generated here uses PUBLIC_SHARED_CLIENT_SALT, which
-		// is compiled into the client-side bundle and is publicly discoverable.
-		// Consequently, this hash is client-forgeable by design. It serves as a light
-		// speed-bump against casual API submission tempering. Any actual security boundary
-		// or strict anti-cheat verification must be implemented server-side by checking
-		// session freshness, rate limiting, and plausibility of the milestone timeline.
-		const payloadString = `${username}:${finalScore}:${sessionToken}:${JSON.stringify(this.milestones)}:${env.PUBLIC_SHARED_CLIENT_SALT}`;
-		const encoder = new TextEncoder();
-		const dataBytes = encoder.encode(payloadString);
-		const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		const validationHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+		const token = sessionToken || OFFLINE_SESSION_TOKEN;
+		const validationHash = await calculateValidationHash(
+			username,
+			finalScore,
+			token,
+			this.milestones
+		);
 
 		return {
 			username,
 			finalScore,
-			sessionToken,
+			sessionToken: token,
 			milestones: this.milestones,
 			validationHash,
 			clientVersion: APP_VERSION,

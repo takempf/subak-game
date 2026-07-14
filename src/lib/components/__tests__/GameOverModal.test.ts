@@ -38,6 +38,8 @@ const makeGameState = (overrides: Record<string, unknown> = {}): GameState =>
 			editToken: null,
 			submittedId: null,
 			submittedRank: null,
+			pendingUsername: '',
+			setInitials: vi.fn(),
 			...((overrides.leaderboard as object) ?? {})
 		},
 		...overrides
@@ -122,7 +124,7 @@ describe('GameOverModal', () => {
 		expect(submitScore).not.toHaveBeenCalled();
 	});
 
-	it('does not auto-submit when there is no session token', async () => {
+	it('auto-submits when there is no session token', async () => {
 		const submitScore = vi.fn().mockResolvedValue({ success: true });
 		const gameState = makeGameState({
 			leaderboard: {
@@ -147,7 +149,7 @@ describe('GameOverModal', () => {
 
 		await new Promise((r) => setTimeout(r, 50));
 
-		expect(submitScore).not.toHaveBeenCalled();
+		expect(submitScore).toHaveBeenCalled();
 	});
 
 	it('is not visible when open is false', () => {
@@ -190,11 +192,10 @@ describe('GameOverModal', () => {
 		});
 	});
 
-	it('uses stored initials from localStorage in auto-submit payload', async () => {
-		window.localStorage.setItem('subak_initials', 'ABC');
-
+	it('uses pending initials in auto-submit payload', async () => {
 		const buildSubmissionPayload = vi.fn().mockResolvedValue({ finalScore: 1500 });
 		const gameState = makeGameState({ telemetry: { buildSubmissionPayload } });
+		gameState.leaderboard.pendingUsername = 'ABC';
 
 		render(GameOverModal, {
 			props: { open: true, score: 1500, onClose: vi.fn(), gameState }
@@ -203,7 +204,5 @@ describe('GameOverModal', () => {
 		await waitFor(() => {
 			expect(buildSubmissionPayload).toHaveBeenCalledWith('ABC', 1500, 'mock-token');
 		});
-
-		window.localStorage.removeItem('subak_initials');
 	});
 });

@@ -23,7 +23,11 @@ vi.mock('../../stores/db', () => ({
 	getHighScores: vi.fn().mockResolvedValue([
 		{ id: 1, score: 1200, date: new Date('2024-01-01') },
 		{ id: 2, score: 800, date: new Date('2024-01-02') }
-	])
+	]),
+	saveScore: vi.fn().mockResolvedValue(undefined),
+	queueSubmission: vi.fn().mockResolvedValue(undefined),
+	getPendingSubmissions: vi.fn().mockResolvedValue([]),
+	deletePendingSubmission: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Helper: query rows only within the active tab panel (not trigger buttons)

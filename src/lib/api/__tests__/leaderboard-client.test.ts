@@ -129,3 +129,62 @@ describe('LeaderboardClient.reset', () => {
 		expect(client.pendingUsername).toBe('');
 	});
 });
+
+describe('LeaderboardClient offline mode', () => {
+	beforeEach(async () => {
+		const { __mockPendingSubmissions } = (await import('../../stores/db')) as unknown as {
+			__mockPendingSubmissions: unknown[];
+		};
+		__mockPendingSubmissions.length = 0;
+	});
+
+	it('queues score when fetch fails', async () => {
+		mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+		const client = new LeaderboardClient();
+
+		const payload = { username: 'TMP', finalScore: 123, sessionToken: 'offline' };
+		const result = await client.submitScore(payload);
+
+		expect(result).toEqual({ success: false, queued: true });
+		expect(client.submissionStatus).toBe('queued');
+
+		const { getPendingSubmissions } = await import('../../stores/db');
+		const pending = await getPendingSubmissions();
+		expect(pending.length).toBe(1);
+		expect(pending[0].payload).toEqual(payload);
+	});
+
+	it('flushes pending submissions and updates username/hash on reconnect', async () => {
+		const { queueSubmission, getPendingSubmissions } = await import('../../stores/db');
+
+		const payload = {
+			username: '',
+			finalScore: 100,
+			sessionToken: 'offline',
+			milestones: [{ timeOffsetMs: 10, scoreIncrement: 10, fruitIndex: 1, dropCount: 1 }],
+			validationHash: 'old-hash'
+		};
+		await queueSubmission(payload);
+
+		window.localStorage.setItem('subak_initials', 'ABC');
+
+		mockFetch.mockResolvedValue({
+			ok: true,
+			json: async () => ({ success: true })
+		});
+
+		const client = new LeaderboardClient();
+		await client.flushPendingSubmissions();
+
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.stringContaining('/api/leaderboard/submit'),
+			expect.objectContaining({
+				method: 'POST',
+				body: expect.stringContaining('"username":"ABC"')
+			})
+		);
+
+		const pending = await getPendingSubmissions();
+		expect(pending.length).toBe(0);
+	});
+});
