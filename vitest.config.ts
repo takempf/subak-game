@@ -11,15 +11,21 @@ const buildHash = (() => {
 	}
 })();
 
-/** Stub for *.svg?component imports — sveltekit-svg is SvelteKit-only, not available in vitest */
+/** Stub for *.svg?component and *.svg?url imports — sveltekit-svg is SvelteKit-only, not available in vitest */
 const svgComponentStub: Plugin = {
 	name: 'vitest-svg-component-stub',
 	resolveId(id) {
+		if (id.includes('.svg?url')) {
+			return '\0virtual:svg-url-stub';
+		}
 		if (id.includes('.svg?')) {
 			return '\0virtual:svg-stub';
 		}
 	},
 	load(id) {
+		if (id === '\0virtual:svg-url-stub') {
+			return 'export default "mock-svg-url";';
+		}
 		if (id === '\0virtual:svg-stub') {
 			// Svelte 5 components are functions; return a no-op mount function
 			return `const SvgStub = () => {}; SvgStub.__name = 'SvgStub'; export default SvgStub;`;

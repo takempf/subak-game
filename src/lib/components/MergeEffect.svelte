@@ -19,11 +19,11 @@ const width = $derived(((radius * 2) / GAME_WIDTH) * scaledGameWidthPx);
 <style>
 	@keyframes ripple {
 		from {
-			scale: 1;
+			transform: scale(1);
 			opacity: 1;
 		}
 		to {
-			scale: 5;
+			transform: scale(5);
 			opacity: 0;
 		}
 	}
@@ -34,5 +34,6 @@ const width = $derived(((radius * 2) / GAME_WIDTH) * scaledGameWidthPx);
 		border-radius: 50%;
 		border: 1px solid hsla(0, 0%, 0%, 0.25);
 		animation: ripple var(--duration) var(--ease-out-quint);
+		will-change: transform, opacity;
 	}
 </style>
