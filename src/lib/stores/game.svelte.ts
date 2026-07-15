@@ -169,7 +169,6 @@ export class GameState {
 		const currentTime = performance.now();
 		const physicsStepMs = this.physicsWorld.integrationParameters.dt * 1000;
 
-		let steppedThisFrame = false;
 		// Clamp the per-frame delta (e.g. Math.min(delta, 100) ms) to prevent catch-up burst
 		const delta = Math.min(currentTime - (this.lastTime ?? currentTime), 100);
 		this.physicsAccumulator += delta;
@@ -179,23 +178,6 @@ export class GameState {
 			this.physicsAccumulator -= physicsStepMs;
 			this.physicsWorld.step(this.eventQueue);
 			this.checkCollisions();
-			steppedThisFrame = true;
-		}
-
-		// Only update rendering state on frames where at least one physics step ran
-		if (steppedThisFrame) {
-			for (const fruit of this.fruits) {
-				if (!fruit.body.isValid()) continue;
-				if (fruit.body.isSleeping()) continue;
-
-				const state = this.fruitsStateById.get(fruit.id);
-				if (state) {
-					const position = fruit.body.translation();
-					state.x = position.x;
-					state.y = position.y;
-					state.rotation = fruit.body.rotation();
-				}
-			}
 		}
 
 		const newMergeEffects = this.mergeEffects.filter(
