@@ -27,10 +27,6 @@ vi.mock('@dimforge/rapier2d-compat', () => ({
 	ActiveEvents: { COLLISION_EVENTS: 1 }
 }));
 
-vi.mock('modern-screenshot', () => ({
-	domToPng: vi.fn().mockResolvedValue('data:image/png;base64,stub')
-}));
-
 vi.mock('../../stores/db', () => ({
 	saveScore: vi.fn().mockResolvedValue(undefined),
 	getHighScores: vi.fn().mockResolvedValue([])

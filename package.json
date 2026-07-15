@@ -49,7 +49,6 @@
 		"bits-ui": "^1.0.0-next.98",
 		"dexie": "^4.0.11",
 		"howler": "^2.2.4",
-		"modern-screenshot": "^4.6.0",
 		"posthog-js": "^1.298.1"
 	},
 	"devDependencies": {

@@ -183,38 +183,28 @@ function renderCanvas() {
 	}
 }
 
-async function generateScreenshot() {
-	if (!gameRef) {
+function generateScreenshot(): string {
+	if (!gameRef || !canvasRef) {
 		throw new Error('Could not find the gameplay area to screenshot.');
 	}
 
-	try {
-		const { domToPng } = await import('modern-screenshot');
-		const screenshotDataUrl = await domToPng(gameRef as HTMLElement, {
-			font: false,
-			onCloneNode: (cloned) => {
-				if (cloned instanceof HTMLElement) {
-					const originalCanvas = gameRef?.querySelector('canvas');
-					if (originalCanvas) {
-						let clonedCanvas: HTMLCanvasElement | null = null;
-						if (cloned.tagName === 'CANVAS') {
-							clonedCanvas = cloned as HTMLCanvasElement;
-						} else {
-							clonedCanvas = cloned.querySelector('canvas');
-						}
-						if (clonedCanvas) {
-							const ctx = clonedCanvas.getContext('2d');
-							ctx?.drawImage(originalCanvas, 0, 0);
-						}
-					}
-				}
-			}
-		});
+	// The game canvas holds every visible element at game-over (fruits, merge effects,
+	// danger ring) but is transparent elsewhere, so composite it over the gameplay-area
+	// background rather than snapshotting the whole DOM.
+	const output = document.createElement('canvas');
+	output.width = canvasRef.width;
+	output.height = canvasRef.height;
 
-		return screenshotDataUrl;
-	} catch (error) {
-		throw new Error('Failed to generate screenshot', { cause: error });
+	const ctx = output.getContext('2d');
+	if (!ctx) {
+		throw new Error('Failed to generate screenshot: could not acquire a canvas context.');
 	}
+
+	ctx.fillStyle = getComputedStyle(gameRef).backgroundColor || 'hsl(0, 0%, 90%)';
+	ctx.fillRect(0, 0, output.width, output.height);
+	ctx.drawImage(canvasRef, 0, 0);
+
+	return output.toDataURL('image/png');
 }
 
 let renderAnimationFrameId: number | null = null;
