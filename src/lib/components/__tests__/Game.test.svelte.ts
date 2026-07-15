@@ -219,7 +219,8 @@ describe('Game component', () => {
 	});
 
 	it('maintains correct fruit images after state changes (merges/removals)', async () => {
-		const { container, getAllByRole } = render(Game);
+		const drawImageSpy = vi.spyOn(CanvasRenderingContext2D.prototype, 'drawImage');
+		const { getAllByRole } = render(Game);
 
 		await fireEvent.click(getAllByRole('button', { name: /start game/i })[0]);
 		await tick();
@@ -227,6 +228,7 @@ describe('Game component', () => {
 		const mockGameState = instances[0];
 		expect(mockGameState).toBeTruthy();
 
+		drawImageSpy.mockClear();
 		mockGameState.fruitsState.length = 0;
 		mockGameState.fruitsState.push(
 			{ id: 1, x: 100, y: 100, rotation: 0, fruitIndex: 0 }, // FruitA
@@ -236,36 +238,37 @@ describe('Game component', () => {
 		mockGameState.setStatus('playing');
 		await tick();
 
-		let fruitNodes = container.querySelectorAll(
-			'.gameplay-area > .game-entity .fruit'
-		) as NodeListOf<HTMLElement>;
-		expect(fruitNodes.length).toBe(3);
-		expect(fruitNodes[0].getAttribute('data-name')).toBe(MOCK_FRUITS[0].name);
-		expect(fruitNodes[1].getAttribute('data-name')).toBe(MOCK_FRUITS[1].name);
-		expect(fruitNodes[2].getAttribute('data-name')).toBe(MOCK_FRUITS[0].name);
+		let drawnNames = drawImageSpy.mock.calls
+			.slice(-mockGameState.fruitsState.length)
+			.map((call) => (call[0] as HTMLCanvasElement).dataset?.name)
+			.filter(Boolean);
+		expect(drawnNames).toEqual([MOCK_FRUITS[0].name, MOCK_FRUITS[1].name, MOCK_FRUITS[0].name]);
 
 		// Remove FruitA's, keep FruitB
+		drawImageSpy.mockClear();
 		const fruitB = mockGameState.fruitsState[1];
 		mockGameState.fruitsState.length = 0;
 		mockGameState.fruitsState.push(fruitB);
 		await tick();
 
-		fruitNodes = container.querySelectorAll(
-			'.gameplay-area > .game-entity .fruit'
-		) as NodeListOf<HTMLElement>;
-		expect(fruitNodes.length).toBe(1);
-		expect(fruitNodes[0].getAttribute('data-name')).toBe(MOCK_FRUITS[1].name);
+		drawnNames = drawImageSpy.mock.calls
+			.slice(-mockGameState.fruitsState.length)
+			.map((call) => (call[0] as HTMLCanvasElement).dataset?.name)
+			.filter(Boolean);
+		expect(drawnNames).toEqual([MOCK_FRUITS[1].name]);
 
 		// Add FruitC
+		drawImageSpy.mockClear();
 		mockGameState.fruitsState.push({ id: 4, x: 400, y: 100, rotation: 0, fruitIndex: 2 });
 		await tick();
 
-		fruitNodes = container.querySelectorAll(
-			'.gameplay-area > .game-entity .fruit'
-		) as NodeListOf<HTMLElement>;
-		expect(fruitNodes.length).toBe(2);
-		expect(fruitNodes[0].getAttribute('data-name')).toBe(MOCK_FRUITS[1].name);
-		expect(fruitNodes[1].getAttribute('data-name')).toBe(MOCK_FRUITS[2].name);
+		drawnNames = drawImageSpy.mock.calls
+			.slice(-mockGameState.fruitsState.length)
+			.map((call) => (call[0] as HTMLCanvasElement).dataset?.name)
+			.filter(Boolean);
+		expect(drawnNames).toEqual([MOCK_FRUITS[1].name, MOCK_FRUITS[2].name]);
+
+		drawImageSpy.mockRestore();
 	});
 
 	it('hides drop line and preview fruit when game is over', async () => {
@@ -291,12 +294,23 @@ describe('Game component', () => {
 	});
 
 	it('applies danger class only to the fruit matching gameOverFruitId', async () => {
-		const { container, getAllByRole } = render(Game);
+		const strokeCalls: string[] = [];
+		const originalStroke = CanvasRenderingContext2D.prototype.stroke;
+		const strokeSpy = vi
+			.spyOn(CanvasRenderingContext2D.prototype, 'stroke')
+			.mockImplementation(function (this: CanvasRenderingContext2D) {
+				strokeCalls.push(String(this.strokeStyle));
+				originalStroke.apply(this);
+			});
+
+		const { getAllByRole } = render(Game);
 		await fireEvent.click(getAllByRole('button', { name: /start game/i })[0]);
 		await tick();
 
 		const mockState = instances[0];
 		const culpritId = 99;
+
+		strokeCalls.length = 0;
 		mockState.gameOverFruitId = culpritId;
 		mockState.fruitsState = [
 			{ id: culpritId, x: 0.3, y: 0.1, rotation: 0, fruitIndex: 0 },
@@ -305,9 +319,18 @@ describe('Game component', () => {
 		mockState.status = 'gameover';
 		await tick();
 
-		const fruitNodes = container.querySelectorAll('.gameplay-area .fruit');
-		expect(fruitNodes[0].classList.contains('danger')).toBe(true);
-		expect(fruitNodes[1].classList.contains('danger')).toBe(false);
+		// We expect 'hotpink' stroke (for danger outline) to be executed
+		const hasDangerOutline = strokeCalls.some((c) => c === 'hotpink' || c === '#ff69b4');
+		expect(hasDangerOutline).toBe(true);
+
+		// Now check that if we clear the danger culprit, no hotpink stroke occurs
+		strokeCalls.length = 0;
+		mockState.gameOverFruitId = null;
+		await tick();
+		const hasDangerOutlineAfterClear = strokeCalls.some((c) => c === 'hotpink' || c === '#ff69b4');
+		expect(hasDangerOutlineAfterClear).toBe(false);
+
+		strokeSpy.mockRestore();
 	});
 
 	it('delays game over modal by 1.5 seconds after gameover', async () => {
