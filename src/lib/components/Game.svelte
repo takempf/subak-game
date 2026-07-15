@@ -3,7 +3,6 @@ import { onMount, setContext } from 'svelte';
 import { fade, scale } from 'svelte/transition';
 import { expoOut } from 'svelte/easing';
 
-// Import Stores and Types
 import { GameState } from '../stores/game.svelte.js';
 import { saveScore } from '../stores/db';
 
@@ -14,22 +13,49 @@ import { useBoundingRect } from '../hooks/useBoundingRect.svelte';
 
 // Import Components
 import Fruit from './Fruit.svelte';
-import MergeEffect from './MergeEffect.svelte';
 import GameEntity from './GameEntity.svelte';
 import GameSidebar from './GameSidebar.svelte';
 import GameHeader from './GameHeader.svelte';
 import GameOverModal from './GameOverModal.svelte';
 import DebugMenu from '../components/DebugMenu.svelte';
 
+// Import SVG fruit assets
+import Blueberry from '../svg/blueberry.svg?url';
+import Grape from '../svg/grape.svg?url';
+import Lemon from '../svg/lemon.svg?url';
+import Orange from '../svg/orange.svg?url';
+import Apple from '../svg/apple.svg?url';
+import Dragonfruit from '../svg/dragonfruit.svg?url';
+import Pear from '../svg/pear.svg?url';
+import Peach from '../svg/peach.svg?url';
+import Pineapple from '../svg/pineapple.svg?url';
+import Honeydew from '../svg/honeydew.svg?url';
+import Watermelon from '../svg/watermelon.svg?url';
+
 // Import Constants and Types
 import {
 	GAME_WIDTH,
 	GAME_WIDTH_PX,
 	GAME_OVER_HEIGHT,
+	GAME_HEIGHT,
 	FRUITS,
 	DEFAULT_IMAGES_PATH,
 	DEFAULT_SOUNDS_PATH
 } from '../constants';
+
+const fruitSvgs: Record<string, string> = {
+	blueberry: Blueberry,
+	grape: Grape,
+	lemon: Lemon,
+	orange: Orange,
+	apple: Apple,
+	dragonfruit: Dragonfruit,
+	pear: Pear,
+	peach: Peach,
+	pineapple: Pineapple,
+	honeydew: Honeydew,
+	watermelon: Watermelon
+};
 
 const { imagesPath = DEFAULT_IMAGES_PATH, soundsPath = DEFAULT_SOUNDS_PATH } = $props();
 
@@ -42,24 +68,182 @@ let showDebugMenu = $state(false);
 
 // Find game area width and cursor position
 let gameRef = $state<HTMLElement | null>(null);
+let canvasRef = $state<HTMLCanvasElement | null>(null);
 let gameBoundingRect = useBoundingRect();
 let cursorPosition = useCursorPosition();
 
-async function generateScreenshot() {
-	if (!gameRef) {
+const spriteCache: HTMLCanvasElement[] = [];
+const fruitImages: HTMLImageElement[] = [];
+let imagesLoaded = $state(false);
+let canvasCtx: CanvasRenderingContext2D | null = null;
+// Resolved from --color-border-light once mounted; default matches the CSS token.
+let borderLightColor = 'hsla(0, 0%, 0%, 0.075)';
+
+// Device pixel ratio, capped at 2 to bound offscreen sprite memory.
+function getDpr() {
+	return Math.min(window.devicePixelRatio || 1, 2);
+}
+
+// The top GAME_OVER_HEIGHT band: a diagonal hatch plus the game-over line, matching the
+// CSS `repeating-linear-gradient(-45deg, …)` (1px lines spaced 15px apart) it replaces.
+function drawRestrictedArea(ctx: CanvasRenderingContext2D) {
+	const width = gameWidthPx;
+	const height = GAME_OVER_HEIGHT * pxScale;
+
+	ctx.strokeStyle = borderLightColor;
+	ctx.lineWidth = 1;
+
+	ctx.save();
+	ctx.beginPath();
+	ctx.rect(0, 0, width, height);
+	ctx.clip();
+	const step = 15 * Math.SQRT2; // perpendicular spacing of 15px between 45° lines
+	for (let c = 0; c <= width + height; c += step) {
+		ctx.beginPath();
+		ctx.moveTo(c, 0);
+		ctx.lineTo(c - height, height);
+		ctx.stroke();
+	}
+	ctx.restore();
+
+	// Bottom border — the game-over line.
+	ctx.beginPath();
+	ctx.moveTo(0, height);
+	ctx.lineTo(width, height);
+	ctx.stroke();
+}
+
+function updateSpriteCache() {
+	spriteCache.length = 0;
+	const dpr = getDpr();
+
+	for (let i = 0; i < FRUITS.length; i++) {
+		const fruit = FRUITS[i];
+		const img = fruitImages[i];
+		const physicalRadius = fruit.radius * pxScale * dpr;
+		const physicalSize = Math.max(1, Math.ceil(physicalRadius * 2));
+
+		const offscreen = document.createElement('canvas');
+		offscreen.width = physicalSize;
+		offscreen.height = physicalSize;
+		offscreen.dataset.name = fruit.name;
+		const offCtx = offscreen.getContext('2d');
+		if (offCtx) {
+			if (img) {
+				offCtx.drawImage(img, 0, 0, physicalSize, physicalSize);
+			} else {
+				// Fallback colored circle if image failed to load or is missing (e.g. in test env)
+				offCtx.beginPath();
+				offCtx.arc(physicalSize / 2, physicalSize / 2, physicalRadius, 0, Math.PI * 2);
+				offCtx.fillStyle = fruit.color || '#ff0000';
+				offCtx.fill();
+				offCtx.strokeStyle = '#000000';
+				offCtx.lineWidth = 1;
+				offCtx.stroke();
+			}
+		}
+		spriteCache[i] = offscreen;
+	}
+}
+
+function renderCanvas() {
+	const ctx = canvasCtx;
+	if (!ctx || !canvasRef) return;
+
+	const dpr = getDpr();
+
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+
+	drawRestrictedArea(ctx);
+
+	// 1. Draw merge effects
+	const currentTime = performance.now();
+	for (const effect of gameState.mergeEffects) {
+		const elapsed = currentTime - effect.startTime;
+		const progress = elapsed / effect.duration;
+		if (progress < 1) {
+			const t = 1 - (1 - progress) ** 5; // quintic ease out
+			const currentRadius = effect.radius * (1 + t * 4) * pxScale;
+			const opacity = 1 - t;
+			ctx.save();
+			ctx.beginPath();
+			ctx.arc(effect.x * pxScale, effect.y * pxScale, currentRadius, 0, Math.PI * 2);
+			ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.25})`;
+			ctx.lineWidth = 1;
+			ctx.stroke();
+			ctx.restore();
+		}
+	}
+
+	// 2. Draw fruits. Production reads live physics-body positions; the mocked
+	// GameState used in tests exposes only fruitsState, so fall back to that.
+	// Both are normalized to a common { x, y, rotation, fruitIndex, id } shape.
+	const drawables = gameState.fruits?.length
+		? gameState.fruits.flatMap((f) => {
+				if (!f.body.isValid()) return [];
+				const pos = f.body.translation();
+				return [
+					{ x: pos.x, y: pos.y, rotation: f.body.rotation(), fruitIndex: f.fruitIndex, id: f.id }
+				];
+			})
+		: gameState.fruitsState;
+
+	for (const fruit of drawables) {
+		const sprite = spriteCache[fruit.fruitIndex];
+		if (!sprite) continue;
+
+		const cx = fruit.x * pxScale;
+		const cy = fruit.y * pxScale;
+		const r = FRUITS[fruit.fruitIndex].radius * pxScale;
+
+		ctx.save();
+		ctx.translate(cx, cy);
+		ctx.rotate(fruit.rotation);
+		ctx.drawImage(sprite, -r, -r, r * 2, r * 2);
+		ctx.restore();
+
+		// Danger indicator
+		if (fruit.id === gameState.gameOverFruitId) {
+			ctx.save();
+			ctx.beginPath();
+			ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
+			ctx.strokeStyle = 'hotpink';
+			ctx.lineWidth = 3;
+			ctx.stroke();
+			ctx.restore();
+		}
+	}
+}
+
+function generateScreenshot(): string {
+	if (!gameRef || !canvasRef) {
 		throw new Error('Could not find the gameplay area to screenshot.');
 	}
 
-	try {
-		const { domToPng } = await import('modern-screenshot');
-		const screenshotDataUrl = await domToPng(gameRef as HTMLElement, {
-			font: false
-		});
+	// The game canvas holds every visible element at game-over (fruits, merge effects,
+	// danger ring) but is transparent elsewhere, so composite it over the gameplay-area
+	// background rather than snapshotting the whole DOM.
+	const output = document.createElement('canvas');
+	output.width = canvasRef.width;
+	output.height = canvasRef.height;
 
-		return screenshotDataUrl;
-	} catch (error) {
-		throw new Error('Failed to generate screenshot', { cause: error });
+	const ctx = output.getContext('2d');
+	if (!ctx) {
+		throw new Error('Failed to generate screenshot: could not acquire a canvas context.');
 	}
+
+	ctx.fillStyle = getComputedStyle(gameRef).backgroundColor || 'hsl(0, 0%, 90%)';
+	ctx.fillRect(0, 0, output.width, output.height);
+	ctx.drawImage(canvasRef, 0, 0);
+
+	return output.toDataURL('image/png');
+}
+
+let renderAnimationFrameId: number | null = null;
+function renderLoop() {
+	renderCanvas();
+	renderAnimationFrameId = requestAnimationFrame(renderLoop);
 }
 
 onMount(() => {
@@ -71,6 +255,11 @@ onMount(() => {
 
 	// Only initialize physics and audio on client
 	gameState.init();
+
+	if (gameRef) {
+		borderLightColor =
+			getComputedStyle(gameRef).getPropertyValue('--color-border-light').trim() || borderLightColor;
+	}
 
 	function handleBeforeUnload(event: BeforeUnloadEvent) {
 		if (gameState.status === 'playing') {
@@ -100,10 +289,43 @@ onMount(() => {
 	window.addEventListener('beforeunload', handleBeforeUnload);
 	document.addEventListener('visibilitychange', handleVisibilityChange);
 
+	// Load SVG fruit assets
+	const loadPromises = FRUITS.map((fruit, index) => {
+		const src = fruitSvgs[fruit.name];
+		if (!src) {
+			return Promise.resolve();
+		}
+		return new Promise<void>((resolve) => {
+			const img = new Image();
+			img.src = src;
+			img.onload = () => {
+				fruitImages[index] = img;
+				resolve();
+			};
+			img.onerror = () => {
+				console.warn(`Failed to load SVG for ${fruit.name}`);
+				resolve();
+			};
+		});
+	});
+
+	Promise.all(loadPromises)
+		.then(() => {
+			imagesLoaded = true;
+		})
+		.catch((err) => {
+			console.error('Error preloading fruit images:', err);
+		});
+
+	renderLoop();
+
 	return function onUnmount() {
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 		gameState.destroy();
+		if (renderAnimationFrameId) {
+			cancelAnimationFrame(renderAnimationFrameId);
+		}
 	};
 });
 
@@ -111,6 +333,8 @@ onMount(() => {
 let currentFruit = $derived(FRUITS[gameState.currentFruitIndex]);
 let gameWidthPx = $derived(gameBoundingRect?.rect?.width || GAME_WIDTH_PX);
 let gameScale = $derived(gameWidthPx / GAME_WIDTH_PX);
+// Meters → pixels for canvas rendering (physics units are meters).
+let pxScale = $derived(gameWidthPx / GAME_WIDTH);
 
 let clampedMouseX: number = $derived.by(() => {
 	const currentFruitRadius = currentFruit?.radius ?? 0.1; // Safety check
@@ -122,6 +346,35 @@ let clampedMouseX: number = $derived.by(() => {
 
 let isDropping = $state(false);
 let showGameOverModal = $state(false);
+
+$effect(() => {
+	gameWidthPx; // rebuild sprites when the game area is resized
+	if (imagesLoaded) {
+		updateSpriteCache();
+	}
+});
+
+$effect(() => {
+	if (canvasRef) {
+		const dpr = getDpr();
+		canvasCtx = canvasRef.getContext('2d');
+		canvasRef.width = gameWidthPx * dpr;
+		canvasRef.height = gameWidthPx * (GAME_HEIGHT / GAME_WIDTH) * dpr;
+		renderCanvas();
+	} else {
+		canvasCtx = null;
+	}
+});
+
+$effect(() => {
+	// Physics-driven frames are painted by the rAF loop; this also drives a synchronous
+	// redraw on state changes for tests, where rAF isn't pumped and GameState is mocked.
+	gameState.fruitsState;
+	gameState.mergeEffects;
+	gameState.status;
+	gameState.gameOverFruitId;
+	renderCanvas();
+});
 
 // Save score and show modal after a delay when game is over
 $effect(() => {
@@ -224,18 +477,11 @@ setContext('generateScreenshot', generateScreenshot);
     >
       <!-- aria-hidden because the wrapper handles interaction -->
 
-      <div class="restricted-area"></div>
+      <canvas bind:this={canvasRef} class="gameplay-canvas"></canvas>
 
       {#if gameState.status !== "gameover"}
         <div class="drop-line" style:translate="{clampedMouseX - 1}px 0" out:fade={{ duration: 200 }}></div>
       {/if}
-
-      <!-- Merge effects - Use effect.id as the key -->
-      {#each gameState.mergeEffects as effect (effect.id)}
-        <GameEntity x={effect.x} y={effect.y} scale={gameScale}>
-          <MergeEffect {...effect} radius={effect.radius * gameScale} />
-        </GameEntity>
-      {/each}
 
       <!-- Preview fruit - Appears when not dropping -->
       {#if gameState.status !== "gameover" && !isDropping && currentFruit}
@@ -259,23 +505,6 @@ setContext('generateScreenshot', generateScreenshot);
           </GameEntity>
         </div>
       {/if}
-
-      <!-- Rendered fruits - Use a unique identifier if available, otherwise index -->
-      <!-- Assuming FruitState doesn't have a stable ID, index might be necessary -->
-      <!-- If FruitState *does* get an ID (e.g., collider handle), use fruit.id -->
-      {#each gameState.fruitsState as fruitState (fruitState.id)}
-        {@const fruit = FRUITS[fruitState.fruitIndex]}
-        {@const isDanger = fruitState.id === gameState.gameOverFruitId}
-        <GameEntity
-          x={fruitState.x}
-          y={fruitState.y}
-          rotation={fruitState.rotation}
-          scale={gameScale}
-          zIndex={isDanger ? 1 : undefined}
-        >
-          <Fruit {...fruit} radius={fruit.radius} scale={gameScale} danger={isDanger} />
-        </GameEntity>
-      {/each}
     </div>
 
     <GameOverModal
@@ -476,31 +705,24 @@ setContext('generateScreenshot', generateScreenshot);
     user-select: none;
     overflow: hidden;
     touch-action: none;
+    isolation: isolate;
   }
-
-  .restricted-area {
+  
+  .gameplay-canvas {
     position: absolute;
     top: 0;
     left: 0;
-    height: 16.666%;
     width: 100%;
-    border-bottom: 1px solid var(--color-border-light);
-    background-image: repeating-linear-gradient(
-      -45deg,
-      /* Gradient direction */ var(--color-border-light) 0px,
-      /* Start color from 0px */ var(--color-border-light) 1px,
-      /* Color extends to 1px */ transparent 1px,
-      /* Transparent starts at 1px */ transparent 15px
-        /* Transparent extends to 3px (1px + 2px) */
-        /* The pattern repeats every 3px */
-    );
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
   }
 
   .drop-line {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 0;
+    z-index: 2;
     width: 1px;
     height: 100%;
     background: var(--color-border-light);
@@ -512,7 +734,7 @@ setContext('generateScreenshot', generateScreenshot);
     left: 0; /* Left is now fixed, use transform for horizontal positioning */
     /* width: 100%; */ /* Width is determined by the fruit component */
     pointer-events: none; /* Prevent interaction */
-    z-index: 1;
+    z-index: 4;
   }
 
   .sidebar {
