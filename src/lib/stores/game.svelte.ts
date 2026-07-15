@@ -91,6 +91,7 @@ export class GameState {
 	physicsAccumulator: number = 0;
 	lastTime: number | null = null;
 	animationFrameId: number | null = null;
+	onUpdate?: () => void;
 
 	physicsWorld: World | null = null;
 	eventQueue: EventQueue | null = null;
@@ -129,6 +130,8 @@ export class GameState {
 
 		this.stepPhysics(); // Run physics step
 		this.throttledCheckGameOver?.(); // We done here?
+
+		this.onUpdate?.(); // Trigger synchronous frame draw
 
 		// Only request next frame if still playing
 		if (this.status === 'playing') {
@@ -175,6 +178,15 @@ export class GameState {
 		this.lastTime = currentTime;
 
 		while (this.physicsAccumulator >= physicsStepMs) {
+			// Record previous positions before this physics step
+			for (const fruit of this.fruits) {
+				if (!fruit.body.isValid()) continue;
+				const pos = fruit.body.translation();
+				fruit.prevX = pos.x;
+				fruit.prevY = pos.y;
+				fruit.prevRotation = fruit.body.rotation();
+			}
+
 			this.physicsAccumulator -= physicsStepMs;
 			this.physicsWorld.step(this.eventQueue);
 			this.checkCollisions();

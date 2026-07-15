@@ -5,6 +5,8 @@ import { GameState } from '../game.svelte.js';
 
 // Stub physics related methods before constructing GameState
 const proto: any = GameState.prototype;
+// Capture the real update() before it is stubbed, so a focused test can exercise it.
+const realUpdate: () => void = proto.update;
 vi.spyOn(proto, 'initPhysics').mockImplementation(async function (this: any) {
 	this.physicsWorld = {
 		integrationParameters: { dt: 1 / 60 },
@@ -184,5 +186,40 @@ describe('GameState Methods', () => {
 		state.animationFrameId = 123 as any;
 		state.setStatus('paused');
 		expect(state.animationFrameId).toBeNull();
+	});
+
+	it('records previous fruit positions before each physics step', () => {
+		const state = new GameState({});
+		state.physicsWorld = { integrationParameters: { dt: 1 / 60 }, step: vi.fn() } as any;
+		state.eventQueue = { drainCollisionEvents: vi.fn() } as any;
+
+		const fruit: any = state.addFruit(0, 0.3, 0.4);
+
+		// Prime the accumulator so exactly one physics step runs.
+		state.lastTime = performance.now();
+		state.physicsAccumulator = (1 / 60) * 1000;
+
+		state.stepPhysics();
+
+		expect(fruit.prevX).toBe(0.3);
+		expect(fruit.prevY).toBe(0.4);
+		expect(fruit.prevRotation).toBe(0);
+	});
+
+	it('invokes onUpdate once per frame while playing', () => {
+		// Stop the frame from rescheduling so the real update() runs a single tick.
+		const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockReturnValue(0 as any);
+		const state = new GameState({});
+		state.physicsWorld = { integrationParameters: { dt: 1 / 60 }, step: vi.fn() } as any;
+		state.eventQueue = { drainCollisionEvents: vi.fn() } as any;
+		state.status = 'playing';
+
+		const onUpdate = vi.fn();
+		state.onUpdate = onUpdate;
+
+		realUpdate.call(state);
+
+		expect(onUpdate).toHaveBeenCalledTimes(1);
+		raf.mockRestore();
 	});
 });

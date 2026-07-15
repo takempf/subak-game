@@ -176,6 +176,11 @@ function renderCanvas() {
 		}
 	}
 
+	const dt = gameState.physicsWorld?.integrationParameters.dt ?? 1 / 60;
+	const physicsStepMs = dt * 1000;
+	const t =
+		physicsStepMs > 0 ? Math.max(0, Math.min(1, gameState.physicsAccumulator / physicsStepMs)) : 1;
+
 	// 2. Draw fruits. Production reads live physics-body positions; the mocked
 	// GameState used in tests exposes only fruitsState, so fall back to that.
 	// Both are normalized to a common { x, y, rotation, fruitIndex, id } shape.
@@ -183,8 +188,17 @@ function renderCanvas() {
 		? gameState.fruits.flatMap((f) => {
 				if (!f.body.isValid()) return [];
 				const pos = f.body.translation();
+				const interpolatedX = f.prevX * (1 - t) + pos.x * t;
+				const interpolatedY = f.prevY * (1 - t) + pos.y * t;
+				const interpolatedRot = f.prevRotation * (1 - t) + f.body.rotation() * t;
 				return [
-					{ x: pos.x, y: pos.y, rotation: f.body.rotation(), fruitIndex: f.fruitIndex, id: f.id }
+					{
+						x: interpolatedX,
+						y: interpolatedY,
+						rotation: interpolatedRot,
+						fruitIndex: f.fruitIndex,
+						id: f.id
+					}
 				];
 			})
 		: gameState.fruitsState;
@@ -238,12 +252,6 @@ function generateScreenshot(): string {
 	ctx.drawImage(canvasRef, 0, 0);
 
 	return output.toDataURL('image/png');
-}
-
-let renderAnimationFrameId: number | null = null;
-function renderLoop() {
-	renderCanvas();
-	renderAnimationFrameId = requestAnimationFrame(renderLoop);
 }
 
 onMount(() => {
@@ -317,15 +325,13 @@ onMount(() => {
 			console.error('Error preloading fruit images:', err);
 		});
 
-	renderLoop();
+	gameState.onUpdate = renderCanvas;
 
 	return function onUnmount() {
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 		gameState.destroy();
-		if (renderAnimationFrameId) {
-			cancelAnimationFrame(renderAnimationFrameId);
-		}
+		gameState.onUpdate = undefined;
 	};
 });
 

@@ -53,6 +53,9 @@ function createMockGameState() {
 		currentFruitIndex: 0,
 		nextFruitIndex: 1,
 		fruitsState: [] as any[],
+		fruits: [] as any[],
+		physicsAccumulator: 0,
+		physicsWorld: { integrationParameters: { dt: 1 / 60 } } as any,
 		mergeEffects: [] as any[],
 		dropCount: 0,
 		gameOverFruitId: null as number | null,
@@ -265,6 +268,49 @@ describe('Game component', () => {
 		expect(drawnNames).toEqual([MOCK_FRUITS[1].name, MOCK_FRUITS[2].name]);
 
 		drawImageSpy.mockRestore();
+	});
+
+	it('interpolates fruit positions between physics steps using the accumulator', async () => {
+		// Each fruit is drawn via ctx.translate(cx, cy); capturing that gives the rendered x.
+		const translateSpy = vi.spyOn(CanvasRenderingContext2D.prototype, 'translate');
+		const { getAllByRole } = render(Game);
+		await fireEvent.click(getAllByRole('button', { name: /start game/i })[0]);
+		await tick();
+
+		const mockState = instances[0];
+		const stepMs = (1 / 60) * 1000;
+		// A single live physics-body fruit: previous position 0, current position 0.5m.
+		mockState.fruits = [
+			{
+				id: 1,
+				fruitIndex: 0,
+				prevX: 0,
+				prevY: 0,
+				prevRotation: 0,
+				body: { isValid: () => true, translation: () => ({ x: 0.5, y: 0.5 }), rotation: () => 0 }
+			}
+		];
+		mockState.setStatus('playing');
+
+		// Render at a given accumulator value and return the fruit's rendered x (cx).
+		async function renderedCxAt(accumulator: number): Promise<number> {
+			mockState.physicsAccumulator = accumulator;
+			mockState.fruitsState = []; // reassign to trigger the render effect
+			translateSpy.mockClear();
+			await tick();
+			const call = translateSpy.mock.calls.at(-1);
+			return call ? (call[0] as number) : Number.NaN;
+		}
+
+		const cxStart = await renderedCxAt(0); // t=0 → prevX
+		const cxEnd = await renderedCxAt(stepMs); // t=1 → current body x
+		const cxMid = await renderedCxAt(stepMs / 2); // t=0.5 → halfway
+
+		expect(cxStart).toBeCloseTo(0, 5); // prevX is 0
+		expect(cxEnd).toBeGreaterThan(cxStart); // advanced toward the live position
+		expect(cxMid).toBeCloseTo((cxStart + cxEnd) / 2, 5); // linear interpolation
+
+		translateSpy.mockRestore();
 	});
 
 	it('hides drop line and preview fruit when game is over', async () => {
