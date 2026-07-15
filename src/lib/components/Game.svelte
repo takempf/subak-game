@@ -76,10 +76,41 @@ const spriteCache: HTMLCanvasElement[] = [];
 const fruitImages: HTMLImageElement[] = [];
 let imagesLoaded = $state(false);
 let canvasCtx: CanvasRenderingContext2D | null = null;
+// Resolved from --color-border-light once mounted; default matches the CSS token.
+let borderLightColor = 'hsla(0, 0%, 0%, 0.075)';
 
 // Device pixel ratio, capped at 2 to bound offscreen sprite memory.
 function getDpr() {
 	return Math.min(window.devicePixelRatio || 1, 2);
+}
+
+// The top GAME_OVER_HEIGHT band: a diagonal hatch plus the game-over line, matching the
+// CSS `repeating-linear-gradient(-45deg, …)` (1px lines spaced 15px apart) it replaces.
+function drawRestrictedArea(ctx: CanvasRenderingContext2D) {
+	const width = gameWidthPx;
+	const height = GAME_OVER_HEIGHT * pxScale;
+
+	ctx.strokeStyle = borderLightColor;
+	ctx.lineWidth = 1;
+
+	ctx.save();
+	ctx.beginPath();
+	ctx.rect(0, 0, width, height);
+	ctx.clip();
+	const step = 15 * Math.SQRT2; // perpendicular spacing of 15px between 45° lines
+	for (let c = 0; c <= width + height; c += step) {
+		ctx.beginPath();
+		ctx.moveTo(c, 0);
+		ctx.lineTo(c - height, height);
+		ctx.stroke();
+	}
+	ctx.restore();
+
+	// Bottom border — the game-over line.
+	ctx.beginPath();
+	ctx.moveTo(0, height);
+	ctx.lineTo(width, height);
+	ctx.stroke();
 }
 
 function updateSpriteCache() {
@@ -123,6 +154,8 @@ function renderCanvas() {
 
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+
+	drawRestrictedArea(ctx);
 
 	// 1. Draw merge effects
 	const currentTime = performance.now();
@@ -222,6 +255,11 @@ onMount(() => {
 
 	// Only initialize physics and audio on client
 	gameState.init();
+
+	if (gameRef) {
+		borderLightColor =
+			getComputedStyle(gameRef).getPropertyValue('--color-border-light').trim() || borderLightColor;
+	}
 
 	function handleBeforeUnload(event: BeforeUnloadEvent) {
 		if (gameState.status === 'playing') {
@@ -438,8 +476,6 @@ setContext('generateScreenshot', generateScreenshot);
       use:cursorPosition.action={gameBoundingRect.rect}
     >
       <!-- aria-hidden because the wrapper handles interaction -->
-
-      <div class="restricted-area"></div>
 
       <canvas bind:this={canvasRef} class="gameplay-canvas"></canvas>
 
@@ -680,25 +716,6 @@ setContext('generateScreenshot', generateScreenshot);
     height: 100%;
     pointer-events: none;
     z-index: 3;
-  }
-
-  .restricted-area {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 16.666%;
-    width: 100%;
-    z-index: 1;
-    border-bottom: 1px solid var(--color-border-light);
-    background-image: repeating-linear-gradient(
-      -45deg,
-      /* Gradient direction */ var(--color-border-light) 0px,
-      /* Start color from 0px */ var(--color-border-light) 1px,
-      /* Color extends to 1px */ transparent 1px,
-      /* Transparent starts at 1px */ transparent 15px
-        /* Transparent extends to 3px (1px + 2px) */
-        /* The pattern repeats every 3px */
-    );
   }
 
   .drop-line {
