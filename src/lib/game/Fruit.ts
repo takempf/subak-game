@@ -26,6 +26,9 @@ export class Fruit {
 	public readonly physicsWorld: World; // Reference to the physics body
 	public startOutOfBounds: DOMHighResTimeStamp | null = null;
 	public outOfBounds: boolean = false;
+	public prevX: number;
+	public prevY: number;
+	public prevRotation: number;
 
 	constructor(fruitIndex: number, x: number, y: number, physicsWorld: World) {
 		const fruitData = FRUITS[fruitIndex];
@@ -40,6 +43,9 @@ export class Fruit {
 		this.radius = fruitData.radius;
 		this.points = fruitData.points;
 		this.physicsWorld = physicsWorld;
+		this.prevX = x;
+		this.prevY = y;
+		this.prevRotation = 0;
 
 		const bodyDesc = RigidBodyDesc.dynamic()
 			.setTranslation(x, y)
