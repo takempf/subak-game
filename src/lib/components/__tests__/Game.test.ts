@@ -16,6 +16,7 @@ beforeEach(() => {
 	vi.spyOn(proto, 'init').mockImplementation(async function (this: any) {
 		this.audioManager = { isMuted: false, toggleMute: vi.fn() };
 		this.status = 'playing';
+		this.score = 10;
 	});
 	vi.spyOn(proto, 'destroy').mockImplementation(() => {});
 });
@@ -60,6 +61,24 @@ describe('Game beforeunload guard', () => {
 		proto.init.mockImplementationOnce(async function (this: any) {
 			this.audioManager = { isMuted: false, toggleMute: vi.fn() };
 			// status intentionally left as 'uninitialized'
+		});
+
+		const addSpy = vi.spyOn(window, 'addEventListener');
+		render(Game);
+
+		const handler = getBeforeUnloadHandler(addSpy);
+		const event = { preventDefault: vi.fn() };
+		handler?.(event);
+
+		expect(handler).toBeDefined();
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it('does not call preventDefault when game is in progress but score is 0', () => {
+		proto.init.mockImplementationOnce(async function (this: any) {
+			this.audioManager = { isMuted: false, toggleMute: vi.fn() };
+			this.status = 'playing';
+			this.score = 0;
 		});
 
 		const addSpy = vi.spyOn(window, 'addEventListener');

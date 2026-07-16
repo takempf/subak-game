@@ -288,7 +288,7 @@ onMount(() => {
 	}
 
 	function handleBeforeUnload(event: BeforeUnloadEvent) {
-		if (gameState.status === 'playing') {
+		if (gameState.status === 'playing' && gameState.score > 0) {
 			event.preventDefault();
 		}
 	}
