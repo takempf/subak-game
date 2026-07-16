@@ -78,18 +78,32 @@ let imagesLoaded = $state(false);
 let canvasCtx: CanvasRenderingContext2D | null = null;
 // Resolved from --color-border-light once mounted; default matches the CSS token.
 let borderLightColor = 'hsla(0, 0%, 0%, 0.075)';
+// Pre-rendered restricted-area band; rebuilt only on resize, blitted every frame.
+let restrictedAreaCanvas: HTMLCanvasElement | null = null;
 
 // Device pixel ratio, capped at 2 to bound offscreen sprite memory.
 function getDpr() {
 	return Math.min(window.devicePixelRatio || 1, 2);
 }
 
-// The top GAME_OVER_HEIGHT band: a diagonal hatch plus the game-over line, matching the
-// CSS `repeating-linear-gradient(-45deg, …)` (1px lines spaced 15px apart) it replaces.
-function drawRestrictedArea(ctx: CanvasRenderingContext2D) {
+// Pre-render the top GAME_OVER_HEIGHT band — a diagonal hatch plus the game-over line,
+// matching the CSS `repeating-linear-gradient(-45deg, …)` (1px lines spaced 15px apart)
+// it replaces — into an offscreen canvas. It's static, so caching it avoids re-stroking
+// ~40 lines on every frame (expensive on mobile canvas). Rebuild on resize/dpr change.
+function updateRestrictedAreaCache() {
+	const dpr = getDpr();
 	const width = gameWidthPx;
 	const height = GAME_OVER_HEIGHT * pxScale;
 
+	const canvas = restrictedAreaCanvas ?? document.createElement('canvas');
+	canvas.width = Math.max(1, Math.ceil(width * dpr));
+	canvas.height = Math.max(1, Math.ceil(height * dpr));
+
+	const ctx = canvas.getContext('2d');
+	if (!ctx) return;
+
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	ctx.clearRect(0, 0, width, height);
 	ctx.strokeStyle = borderLightColor;
 	ctx.lineWidth = 1;
 
@@ -111,6 +125,8 @@ function drawRestrictedArea(ctx: CanvasRenderingContext2D) {
 	ctx.moveTo(0, height);
 	ctx.lineTo(width, height);
 	ctx.stroke();
+
+	restrictedAreaCanvas = canvas;
 }
 
 function updateSpriteCache() {
@@ -155,7 +171,9 @@ function renderCanvas() {
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
 
-	drawRestrictedArea(ctx);
+	if (restrictedAreaCanvas) {
+		ctx.drawImage(restrictedAreaCanvas, 0, 0, gameWidthPx, GAME_OVER_HEIGHT * pxScale);
+	}
 
 	// 1. Draw merge effects
 	const currentTime = performance.now();
@@ -366,6 +384,7 @@ $effect(() => {
 		canvasCtx = canvasRef.getContext('2d');
 		canvasRef.width = gameWidthPx * dpr;
 		canvasRef.height = gameWidthPx * (GAME_HEIGHT / GAME_WIDTH) * dpr;
+		updateRestrictedAreaCache();
 		renderCanvas();
 	} else {
 		canvasCtx = null;
